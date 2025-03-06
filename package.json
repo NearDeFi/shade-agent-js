@@ -1,0 +1,23 @@
+{
+    "type": "module",
+    "name": "shade-agent-lib",
+    "version": "1.0.0",
+    "main": "index.js",
+    "author": "Matt Lockyer <github.com/mattlockyer>",
+    "license": "MIT",
+    "scripts": {
+        "build": "tsup src/* --format cjs && cp -a dist/* ../shade-agent-template/temp/"
+    },
+    "devDependencies": {
+        "tsup": "^8.4.0",
+        "js-sha3": "^0.9.3",
+        "keccak": "^3.0.4",
+        "bs58check": "^4.0.0",
+        "typescript": "^5.8.2",
+        "@types/node": "^22.13.9",
+        "agent-twitter-client": "^0.0.17",
+        "dotenv": "^16.4.7",
+        "near-api-js": "^5.0.1",
+        "near-seed-phrase": "^0.2.1"
+    }
+}
