@@ -1,12 +1,13 @@
 {
     "type": "module",
-    "name": "shade-agent-lib",
-    "version": "1.0.0",
-    "main": "index.js",
+    "name": "@neardefi/shade-agent-js",
+    "version": "0.0.4",
+    "main": "index.cjs",
     "author": "Matt Lockyer <github.com/mattlockyer>",
     "license": "MIT",
     "scripts": {
-        "build": "tsup src/* --format cjs && cp -a dist/* ../shade-agent-template/temp/"
+        "build": "tsup src/* --format cjs && cp package.json dist/package.json",
+        "deploy": "npm publish --access public"
     },
     "devDependencies": {
         "tsup": "^8.4.0",
@@ -19,5 +20,20 @@
         "dotenv": "^16.4.7",
         "near-api-js": "^5.0.1",
         "near-seed-phrase": "^0.2.1"
-    }
+    },
+    "description": "This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/).",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/NearDeFi/shade-agent-js.git"
+    },
+    "keywords": [
+        "AI",
+        "agents",
+        "crypto",
+        "shade"
+    ],
+    "bugs": {
+        "url": "https://github.com/NearDeFi/shade-agent-js/issues"
+    },
+    "homepage": "https://github.com/NearDeFi/shade-agent-js#readme"
 }
