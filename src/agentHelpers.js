@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
-import { setKey, getImplicit } from './nearProvider';
+import { setKey, getImplicit, contractCall } from './nearProvider';
 
 // if running simulator otherwise this will be undefined
 const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
@@ -35,10 +35,10 @@ export async function registerWorker() {
     const client = new TappdClient(endpoint);
 
     // get tcb info from tappd
-    const { tcb_info } = await client.getInfo();
-    const { app_compose } = JSON.parse(tcb_info);
-    // match 'sha256:' in docker-compose.yaml (arrange docker-compose.yaml accordingly)
-    const [codehash] = app_compose.match(/sha256:([a-f0-9]*)/gim);
+    let { tcb_info } = await client.getInfo();
+    if (typeof tcb_info !== 'string') {
+        tcb_info = JSON.stringify(tcb_info);
+    }
 
     // get TDX quote
     const randomNumString = Math.random().toString();
@@ -66,7 +66,7 @@ export async function registerWorker() {
             quote_hex,
             collateral,
             checksum,
-            codehash,
+            tcb_info,
         },
     });
 
