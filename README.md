@@ -1,6 +1,46 @@
 # Shade Agent JS
 
-This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/).
+This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/) adn deploying your own fork of this template.
+
+## API
+
+### deriveWorkerAccount() -> accountId: String
+
+This method uses Phala's dStack SDK and communicates with the TEE hardware to derive a unique NEAR Account for the instance of the TEE.
+
+The secretKey is kept inside the TEE in the near-api-js InMemoryKeyStore.
+
+It returns the implicit accountId.
+
+All subsequent contractCalls will be made from this account (unless otherwise specified).
+
+### registerWorker() -> success: bool
+
+This method gathers all the data from the TEE and calls the Shade Agent Smart contract `registerWorker` method.
+
+Once a shade agent is registered it can call any contract methods that are allowed by it's docker image codehash.
+
+### generateAddress(...)
+
+This method is exposed to generate chain signatures addresses in the worker agent.
+
+If the shade agent is allowed to get signatures from the smart contract, the signatures will be for these derived accounts.
+
+### Twitter
+
+Twitter functionality is exposed from the `"agent-twitter-client": "^0.0.17"` library.
+
+You must provide env vars to use your Twitter account with this library:
+
+```bash
+TWITTER_AUTH_TOKEN=""
+TWITTER_CT0=""
+TWITTER_GUEST_ID=""
+```
+
+### Other exports
+
+See `index.ts` for a full list of exports. Most of these are for convenience in creating your own shade agent so that you don't need to reimport additional libraries.
 
 ## Features
 
