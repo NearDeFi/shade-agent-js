@@ -7,6 +7,7 @@ export {
     getBalance,
     contractView,
     contractCall,
+    networkId,
 } from './nearProvider';
 export {
     parseNearAmount,

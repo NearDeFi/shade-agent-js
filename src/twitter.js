@@ -1,13 +1,16 @@
 import { Scraper, SearchMode as _SearchMode } from 'agent-twitter-client';
 export const SearchMode = _SearchMode;
 
+// "agent-twitter-client": "^0.0.17",
 export const twitter = new Scraper();
 twitter.isReady = false;
 
 // set the cookies for the scraper
 
-const bakeCookies = async () => {
-    if (twitter.isReady) return;
+export const bakeCookies = async () => {
+    if (twitter.isReady) {
+        return;
+    }
 
     const cookieStrings = [
         {
@@ -34,7 +37,42 @@ const bakeCookies = async () => {
             }; SameSite=${cookie.sameSite || 'Lax'}`,
     );
 
+    twitter.token = process.env.TWITTER_BEARER_TOKEN;
     await twitter.setCookies(cookieStrings);
     twitter.isReady = true;
 };
 bakeCookies();
+
+// utilities (exceptions are swallowed on purpose to not block agents, simply retry the call)
+
+export async function getConversationId(client, tweetId) {
+    try {
+        const tweet = await client.v2.singleTweet(tweetId, {
+            'tweet.fields': 'conversation_id',
+        });
+        return tweet.data.conversation_id;
+    } catch (e) {
+        console.log('ERROR getConversationId', e);
+    }
+    return null;
+}
+
+export async function getLatestConversationTweet(client, conversationId) {
+    try {
+        const searchResult = await client.v2.search(
+            `conversation_id:${conversationId}`,
+            {
+                'tweet.fields': 'created_at',
+                max_results: 100, // Adjust based on needs
+            },
+        );
+        if (searchResult?.data?.meta?.result_count === 0) {
+            return null;
+        }
+
+        return searchResult.data.data[0]; // Most recent tweet is first
+    } catch (e) {
+        console.log('ERROR getLatestConversationTweet', e);
+    }
+    return null;
+}

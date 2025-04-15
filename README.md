@@ -2,6 +2,30 @@
 
 This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/) adn deploying your own fork of this template.
 
+For help developing and deploying your shade agent Phala join the [Shade Agents Dev Group](https://t.me/shadeagents)!
+
+## X (Twitter) with Eliza OS Agent Twitter Client
+
+Twitter functionality is exposed from the `"agent-twitter-client": "^0.0.17"` library.
+
+You must provide env vars to use your Twitter account with this library:
+
+```bash
+TWITTER_AUTH_TOKEN=""
+TWITTER_CT0=""
+TWITTER_GUEST_ID=""
+TWITTER_BEARER_TOKEN=""
+```
+
+Then you can import and use the twitter client using:
+
+```js
+import { SearchMode, twitter } from '../../utils/twitter';
+
+// Search for recent tweets
+const tweets = scraper.searchTweets('#nodejs', 20, SearchMode.Latest);
+```
+
 ## API
 
 ### deriveWorkerAccount() -> accountId: String
@@ -26,18 +50,6 @@ This method is exposed to generate chain signatures addresses in the worker agen
 
 If the shade agent is allowed to get signatures from the smart contract, the signatures will be for these derived accounts.
 
-### Twitter
-
-Twitter functionality is exposed from the `"agent-twitter-client": "^0.0.17"` library.
-
-You must provide env vars to use your Twitter account with this library:
-
-```bash
-TWITTER_AUTH_TOKEN=""
-TWITTER_CT0=""
-TWITTER_GUEST_ID=""
-```
-
 ### Other exports
 
 See `index.ts` for a full list of exports. Most of these are for convenience in creating your own shade agent so that you don't need to reimport additional libraries.
@@ -52,6 +64,8 @@ See `index.ts` for a full list of exports. Most of these are for convenience in 
 ## Shade Agent Template
 
 This is a monorepo template for the Shade Agent Stack with all the code and tools for deploying a Shade Agent on NEAR and Phala Cloud.
+
+For help developing and deploying your shade agent Phala join the [Shade Agents Dev Group](https://t.me/shadeagents)!
 
 The template has 2 main components:
 

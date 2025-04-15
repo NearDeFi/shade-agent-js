@@ -6,7 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
     // load .env in production
     dotenv.config();
 }
-
+import { parseSeedPhrase } from 'near-seed-phrase';
 import * as nearAPI from 'near-api-js';
 const {
     Near,
@@ -18,14 +18,20 @@ const {
 
 // from .env
 let _contractId = process.env.NEXT_PUBLIC_contractId;
+export const contractId = _contractId;
+export const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
 // from .env.development.local
 let secretKey = process.env.NEXT_PUBLIC_secretKey;
 let _accountId = process.env.NEXT_PUBLIC_accountId;
 
-export const contractId = _contractId;
-
-const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
 const keyStore = new keyStores.InMemoryKeyStore();
+
+// local and running an api endpoint we want NEAR mainnet calls from our NEAR mainnet account
+if (networkId === 'mainnet' && process.env.NEAR_ACCOUNT_ID) {
+    _accountId = process.env.NEAR_ACCOUNT_ID;
+    secretKey = parseSeedPhrase(process.env.NEAR_SEED_PHRASE).secretKey;
+}
+
 const config =
     networkId === 'testnet'
         ? {
@@ -121,6 +127,7 @@ export const contractCall = async ({
     contractId = _contractId,
     methodName,
     args,
+    attachedDeposit = '0',
 }) => {
     const account = getAccount(accountId);
     let res;
@@ -130,6 +137,7 @@ export const contractCall = async ({
             methodName,
             args,
             gas,
+            attachedDeposit,
         });
     } catch (e) {
         console.log(e);
