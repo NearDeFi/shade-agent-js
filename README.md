@@ -20,7 +20,7 @@ TWITTER_BEARER_TOKEN=""
 Then you can import and use the twitter client using:
 
 ```js
-import { SearchMode, twitter } from '../../utils/twitter';
+import { SearchMode, twitter } from '@neardefi/shade-agent-js';
 
 // Search for recent tweets
 const tweets = scraper.searchTweets('#nodejs', 20, SearchMode.Latest);
