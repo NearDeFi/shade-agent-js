@@ -7,11 +7,23 @@ import bs58check from 'bs58check';
 import keccak from 'keccak';
 import { generateSeedPhrase } from 'near-seed-phrase';
 
+/**
+ * Converts a NEAR public key string to an uncompressed hex point
+ * @param {string} najPublicKeyStr - NEAR public key string
+ * @returns {string} Uncompressed hex point
+ */
 export function najPublicKeyStrToUncompressedHexPoint(najPublicKeyStr) {
     const decodedKey = base_decode(najPublicKeyStr.split(':')[1]);
     return '04' + Buffer.from(decodedKey).toString('hex');
 }
 
+/**
+ * Derives a child public key from a parent public key using secp256k1
+ * @param {string} parentUncompressedPublicKeyHex - Parent public key in uncompressed hex format
+ * @param {string} signerId - Signer ID for derivation
+ * @param {string} [path=''] - Optional derivation path
+ * @returns {Promise<string>} Derived child public key in uncompressed hex format
+ */
 export async function deriveChildPublicKey(
     parentUncompressedPublicKeyHex,
     signerId,
@@ -40,6 +52,12 @@ export async function deriveChildPublicKey(
     return '04' + newX + newY;
 }
 
+/**
+ * Converts an uncompressed hex point to a Bitcoin address
+ * @param {string} uncompressedHexPoint - Public key in uncompressed hex format
+ * @param {Buffer} networkByte - Network version byte (e.g., 0x00 for mainnet, 0x6f for testnet)
+ * @returns {Promise<string>} Bitcoin address in Base58Check format
+ */
 export async function uncompressedHexPointToBtcAddress(
     uncompressedHexPoint,
     networkByte,
@@ -69,6 +87,13 @@ export async function uncompressedHexPointToBtcAddress(
     return bs58check.encode(networkByteAndRipemd160);
 }
 
+/**
+ * Generates a Bitcoin address from a child public key
+ * @param {Object} params - Bitcoin address generation parameters
+ * @param {string} params.childPublicKey - Child public key in uncompressed hex format
+ * @param {boolean} [params.isTestnet=true] - Whether to generate testnet (true) or mainnet (false) address
+ * @returns {Promise<string>} Bitcoin address in Base58Check format
+ */
 export async function generateBtcAddress({ childPublicKey, isTestnet = true }) {
     const networkByte = Buffer.from([isTestnet ? 0x6f : 0x00]); // 0x00 for mainnet, 0x6f for testnet
     const address = await uncompressedHexPointToBtcAddress(
@@ -78,6 +103,11 @@ export async function generateBtcAddress({ childPublicKey, isTestnet = true }) {
     return address;
 }
 
+/**
+ * Converts an uncompressed hex point to an Ethereum (EVM) address
+ * @param {string} uncompressedHexPoint - Public key in uncompressed hex format
+ * @returns {string} Ethereum address (40 hex chars with 0x prefix)
+ */
 function uncompressedHexPointToEvmAddress(uncompressedHexPoint) {
     // console.log('uncompressedHexPoint', uncompressedHexPoint);
 
@@ -89,6 +119,11 @@ function uncompressedHexPointToEvmAddress(uncompressedHexPoint) {
     return '0x' + address.substring(address.length - 40);
 }
 
+/**
+ * Converts an uncompressed hex point to a NEAR implicit account
+ * @param {string} uncompressedHexPoint - Public key in uncompressed hex format
+ * @returns {Promise<{implicitAccountId: string, implicitSecpPublicKey: string, implicitAccountSecretKey: string}>} NEAR account details
+ */
 async function uncompressedHexPointToNearImplicit(uncompressedHexPoint) {
     // console.log('uncompressedHexPoint', uncompressedHexPoint);
 
@@ -124,6 +159,15 @@ async function uncompressedHexPointToNearImplicit(uncompressedHexPoint) {
     };
 }
 
+/**
+ * Generates a blockchain address from a public key
+ * @param {Object} params - Address generation parameters
+ * @param {string} params.publicKey - NEAR public key string
+ * @param {string} params.accountId - Account ID for derivation
+ * @param {string} [params.path] - Optional derivation path
+ * @param {('evm'|'btc'|'bitcoin'|'dogecoin'|'near')} [params.chain='evm'] - Target blockchain
+ * @returns {Promise<{address: string, publicKey: string, nearSecpPublicKey?: string, nearImplicitSecretKey?: string}>} Generated address and related keys
+ */
 export async function generateAddress({ publicKey, accountId, path, chain }) {
     console.log('publicKey', publicKey);
     console.log('accountId', accountId);

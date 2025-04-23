@@ -10,6 +10,10 @@ const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 const randomArray = new Uint8Array(32);
 crypto.getRandomValues(randomArray);
 
+/**
+ * Derives a worker account using TEE-based entropy
+ * @returns {Promise<string>} The derived account ID
+ */
 export async function deriveWorkerAccount() {
     // env prod in TEE
     const client = new TappdClient(endpoint);
@@ -30,6 +34,10 @@ export async function deriveWorkerAccount() {
     return accountId;
 }
 
+/**
+ * Registers a worker with the contract
+ * @returns {Promise<boolean>} Result of the registration
+ */
 export async function registerWorker() {
     // env prod in TEE
     const client = new TappdClient(endpoint);
