@@ -56,6 +56,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // helpers
 
+/**
+ * Sets a key pair for an account in the in-memory keystore
+ * @param {string} accountId - NEAR account ID
+ * @param {string} secretKey - Account's secret key
+ */
 export const setKey = (accountId, secretKey) => {
     if (!accountId || !secretKey) return;
     _accountId = accountId;
@@ -67,19 +72,39 @@ export const setKey = (accountId, secretKey) => {
 if (secretKey) {
     setKey(_accountId, secretKey);
 }
-// .env.development.local - for tests expose keyPair and use for contract account (sub account of dev account)
-// process.env.NEXT_PUBLIC_secretKey not set in production
+
+/**
+ * Gets the development account's key pair from environment variables
+ * @returns {KeyPair} The development account's key pair
+ */
 export const getDevAccountKeyPair = () => {
+    // .env.development.local - for tests expose keyPair and use for contract account (sub account of dev account)
+    // process.env.NEXT_PUBLIC_secretKey not set in production
     const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey);
     keyStore.setKey(networkId, contractId, keyPair);
     return keyPair;
 };
 
+/**
+ * Converts a public key string to an implicit account ID
+ * @param {string} pubKeyStr - Public key string
+ * @returns {string} Implicit account ID (hex encoded)
+ */
 export const getImplicit = (pubKeyStr) =>
     Buffer.from(PublicKey.from(pubKeyStr).data).toString('hex').toLowerCase();
 
+/**
+ * Creates a NEAR Account instance
+ * @param {string} [id=_accountId] - NEAR account ID
+ * @returns {Account} NEAR Account instance
+ */
 export const getAccount = (id = _accountId) => new Account(connection, id);
 
+/**
+ * Gets the balance of a NEAR account
+ * @param {string} accountId - NEAR account ID
+ * @returns {Promise<{available: string}>} Account balance
+ */
 export const getBalance = async (accountId) => {
     let balance = { available: '0' };
     try {
@@ -97,6 +122,15 @@ export const getBalance = async (accountId) => {
 
 // contract interactions
 
+/**
+ * Calls a view method on a NEAR contract
+ * @param {Object} params - View call parameters
+ * @param {string} [params.accountId] - Account ID to use for the call
+ * @param {string} [params.contractId=_contractId] - Contract ID to call
+ * @param {string} params.methodName - Contract method name
+ * @param {Object} [params.args={}] - Method arguments
+ * @returns {Promise<any>} Method result
+ */
 export const contractView = async ({
     accountId,
     contractId = _contractId,
@@ -122,6 +156,16 @@ export const contractView = async ({
     return res;
 };
 
+/**
+ * Calls a change method on a NEAR contract
+ * @param {Object} params - Call parameters
+ * @param {string} [params.accountId] - Account ID to use for the call
+ * @param {string} [params.contractId=_contractId] - Contract ID to call
+ * @param {string} params.methodName - Contract method name
+ * @param {Object} [params.args] - Method arguments
+ * @param {string} [params.attachedDeposit='0'] - Amount of NEAR to attach
+ * @returns {Promise<any>} Transaction result
+ */
 export const contractCall = async ({
     accountId,
     contractId = _contractId,
@@ -174,6 +218,13 @@ export const contractCall = async ({
     return parseSuccessValue(res);
 };
 
+/**
+ * Parses the success value from a NEAR transaction result
+ * @param {Object} transaction - Transaction result object
+ * @param {Object} transaction.status - Transaction status
+ * @param {string} transaction.status.SuccessValue - Base64 encoded success value
+ * @returns {any} Parsed success value or undefined if empty/invalid
+ */
 const parseSuccessValue = (transaction) => {
     if (transaction.status.SuccessValue.length === 0) return;
 

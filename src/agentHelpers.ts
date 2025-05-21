@@ -10,17 +10,38 @@ const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 const randomArray = new Uint8Array(32);
 crypto.getRandomValues(randomArray);
 
-export async function deriveWorkerAccount() {
-    // env prod in TEE
-    const client = new TappdClient(endpoint);
-    // entropy from TEE hardware
-    const randomString = Buffer.from(randomArray).toString('hex');
-    const keyFromTee = await client.deriveKey(randomString, randomString);
-    // hash of in-memory and TEE entropy
-    const hash = await crypto.subtle.digest(
-        'SHA-256',
-        Buffer.concat([randomArray, keyFromTee.asUint8Array(32)]),
-    );
+/**
+ * Derives a worker account using TEE-based entropy
+ * @param {Buffer | undefined} hash - User provided hash for seed phrase generation. When undefined, it will try to use TEE hardware entropy or JS crypto.
+ * @returns {Promise<string>} The derived account ID
+ */
+export async function deriveWorkerAccount(hash: Buffer | undefined) {
+    // use TEE entropy or fallback to js crypto randomArray
+    if (!hash) {
+        try {
+            // entropy from TEE hardware
+            const client = new TappdClient(endpoint);
+            const randomString = Buffer.from(randomArray).toString('hex');
+            const keyFromTee = await client.deriveKey(
+                randomString,
+                randomString,
+            );
+            // hash of in-memory and TEE entropy
+            hash = Buffer.from(
+                await crypto.subtle.digest(
+                    'SHA-256',
+                    Buffer.concat([randomArray, keyFromTee.asUint8Array(32)]),
+                ),
+            );
+        } catch (e) {
+            console.log('NOT RUNNING IN TEE');
+            // hash of in-memory and TEE entropy
+            hash = Buffer.from(
+                await crypto.subtle.digest('SHA-256', randomArray),
+            );
+        }
+    }
+
     // !!! data.secretKey should not be exfiltrated anywhere !!! no logs or debugging tools !!!
     const data = generateSeedPhrase(hash);
     const accountId = getImplicit(data.publicKey);
@@ -30,12 +51,24 @@ export async function deriveWorkerAccount() {
     return accountId;
 }
 
+/**
+ * Registers a worker with the contract
+ * @returns {Promise<boolean>} Result of the registration
+ */
 export async function registerWorker() {
-    // env prod in TEE
     const client = new TappdClient(endpoint);
+    // get tcb_info from tappd if we are running in a TEE
+    let tcb_info;
+    try {
+        // env prod in TEE
+        tcb_info = (await client.getInfo()).tcb_info;
+    } catch (e) {
+        console.log('NOT RUNNING IN TEE');
+        console.log('not calling register_worker');
+        return;
+    }
 
-    // get tcb info from tappd
-    let { tcb_info } = await client.getInfo();
+    // parse tcb_info
     if (typeof tcb_info !== 'string') {
         tcb_info = JSON.stringify(tcb_info);
     }

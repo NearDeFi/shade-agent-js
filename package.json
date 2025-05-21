@@ -1,25 +1,30 @@
 {
     "type": "module",
     "name": "@neardefi/shade-agent-js",
-    "version": "0.0.12",
+    "version": "0.0.13",
     "main": "index.cjs",
+    "types": "dist/index.d.ts",
     "author": "Matt Lockyer <github.com/mattlockyer>",
     "license": "MIT",
     "scripts": {
-        "build": "tsup src/* --format cjs && cp package.json dist/package.json",
+        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json",
+        "build:proxy": "cd contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm&& cd ..",
         "deploy": "npm publish --access public"
     },
     "devDependencies": {
-        "tsup": "^8.4.0",
+        "@types/elliptic": "^6",
+        "@types/node": "^22.15.21",
+        "agent-twitter-client": "^0.0.17",
+        "bs58check": "^4.0.0",
+        "dotenv": "^16.4.7",
+        "elliptic": "^6.6.1",
+        "hash.js": "^1.1.7",
         "js-sha3": "^0.9.3",
         "keccak": "^3.0.4",
-        "bs58check": "^4.0.0",
-        "typescript": "^5.8.2",
-        "@types/node": "^22.13.9",
-        "agent-twitter-client": "^0.0.17",
-        "dotenv": "^16.4.7",
         "near-api-js": "^5.0.1",
-        "near-seed-phrase": "^0.2.1"
+        "near-seed-phrase": "^0.2.1",
+        "tsup": "^8.5.0",
+        "typescript": "^5.8.3"
     },
     "description": "This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/).",
     "repository": {
@@ -35,5 +40,6 @@
     "bugs": {
         "url": "https://github.com/NearDeFi/shade-agent-js/issues"
     },
-    "homepage": "https://github.com/NearDeFi/shade-agent-js#readme"
+    "homepage": "https://github.com/NearDeFi/shade-agent-js#readme",
+    "packageManager": "yarn@4.9.1"
 }

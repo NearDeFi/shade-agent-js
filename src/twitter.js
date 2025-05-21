@@ -7,6 +7,10 @@ twitter.isReady = false;
 
 // set the cookies for the scraper
 
+/**
+ * Sets up authentication cookies for the Twitter scraper
+ * @returns {Promise<void>}
+ */
 export const bakeCookies = async () => {
     if (twitter.isReady) {
         return;
@@ -45,6 +49,12 @@ bakeCookies();
 
 // utilities (exceptions are swallowed on purpose to not block agents, simply retry the call)
 
+/**
+ * Retrieves the conversation ID for a given tweet
+ * @param {Object} client - Twitter API client instance
+ * @param {string} tweetId - ID of the tweet
+ * @returns {Promise<string|null>} Conversation ID or null if not found
+ */
 export async function getConversationId(client, tweetId) {
     try {
         const tweet = await client.v2.singleTweet(tweetId, {
@@ -57,6 +67,12 @@ export async function getConversationId(client, tweetId) {
     return null;
 }
 
+/**
+ * Retrieves the most recent tweet in a conversation
+ * @param {Object} client - Twitter API client instance
+ * @param {string} conversationId - ID of the conversation
+ * @returns {Promise<Object|null>} Tweet object or null if not found
+ */
 export async function getLatestConversationTweet(client, conversationId) {
     try {
         const searchResult = await client.v2.search(

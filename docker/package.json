@@ -1,0 +1,12 @@
+{
+    "type": "module",
+    "name": "docker",
+    "packageManager": "yarn@4.9.1",
+    "scripts": {
+        "start": "yarn node app.js"
+    },
+    "dependencies": {
+        "@hono/node-server": "^1.14.2",
+        "hono": "^4.7.10"
+    }
+}

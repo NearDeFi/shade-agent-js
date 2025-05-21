@@ -4,7 +4,10 @@ node_modules
 /dist
 
 # local env files
+.env
 .env*.local
 
 # contract
-contract/target
+contracts/sandbox/target
+# contract
+contracts/proxy/target
