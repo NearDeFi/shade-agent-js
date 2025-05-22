@@ -35,7 +35,7 @@ export async function deriveWorkerAccount(hash: Buffer | undefined) {
             );
         } catch (e) {
             console.log('NOT RUNNING IN TEE');
-            // hash of in-memory and TEE entropy
+            // hash of in-memory ONLY
             hash = Buffer.from(
                 await crypto.subtle.digest('SHA-256', randomArray),
             );
@@ -53,55 +53,59 @@ export async function deriveWorkerAccount(hash: Buffer | undefined) {
 
 /**
  * Registers a worker with the contract
+ * @param {String | undefined} codehash - User provided codehash for proxy contract, running locally and NOT in a TEE
  * @returns {Promise<boolean>} Result of the registration
  */
-export async function registerWorker() {
-    const client = new TappdClient(endpoint);
-    // get tcb_info from tappd if we are running in a TEE
-    let tcb_info;
-    try {
+export async function registerWorker(codehash: String | undefined) {
+    // get tcb_info from tappd if we are running in a TEE, otherwise we're running locally so register worker with codehash "proxy"
+    let resContract;
+    if (!codehash) {
         // env prod in TEE
-        tcb_info = (await client.getInfo()).tcb_info;
-    } catch (e) {
-        console.log('NOT RUNNING IN TEE');
-        console.log('not calling register_worker');
-        return;
+        const client = new TappdClient(endpoint);
+        let tcb_info = (await client.getInfo()).tcb_info;
+
+        // parse tcb_info
+        if (typeof tcb_info !== 'string') {
+            tcb_info = JSON.stringify(tcb_info);
+        }
+
+        // get TDX quote
+        const randomNumString = Math.random().toString();
+        const ra = await client.tdxQuote(randomNumString);
+        const quote_hex = ra.quote.replace(/^0x/, '');
+
+        // get quote collateral
+        const formData = new FormData();
+        formData.append('hex', quote_hex);
+        let collateral, checksum;
+        // WARNING: this endpoint could throw or be offline
+        const resHelper = await (
+            await fetch('https://proof.t16z.com/api/upload', {
+                method: 'POST',
+                body: formData,
+            })
+        ).json();
+        checksum = resHelper.checksum;
+        collateral = JSON.stringify(resHelper.quote_collateral);
+
+        // register the worker (returns bool)
+        resContract = await contractCall({
+            methodName: 'register_worker',
+            args: {
+                quote_hex,
+                collateral,
+                checksum,
+                tcb_info,
+            },
+        });
+    } else {
+        resContract = await contractCall({
+            methodName: 'register_worker',
+            args: {
+                codehash: 'proxy',
+            },
+        });
     }
-
-    // parse tcb_info
-    if (typeof tcb_info !== 'string') {
-        tcb_info = JSON.stringify(tcb_info);
-    }
-
-    // get TDX quote
-    const randomNumString = Math.random().toString();
-    const ra = await client.tdxQuote(randomNumString);
-    const quote_hex = ra.quote.replace(/^0x/, '');
-
-    // get quote collateral
-    const formData = new FormData();
-    formData.append('hex', quote_hex);
-    let collateral, checksum;
-    // WARNING: this endpoint could throw or be offline
-    const resHelper = await (
-        await fetch('https://proof.t16z.com/api/upload', {
-            method: 'POST',
-            body: formData,
-        })
-    ).json();
-    checksum = resHelper.checksum;
-    collateral = JSON.stringify(resHelper.quote_collateral);
-
-    // register the worker (returns bool)
-    const resContract = await contractCall({
-        methodName: 'register_worker',
-        args: {
-            quote_hex,
-            collateral,
-            checksum,
-            tcb_info,
-        },
-    });
 
     return resContract;
 }

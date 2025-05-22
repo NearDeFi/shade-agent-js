@@ -12,7 +12,6 @@ mod utils;
 #[near(serializers = [json, borsh])]
 #[derive(Clone)]
 pub struct Worker {
-    checksum: String,
     codehash: String,
 }
 
@@ -52,12 +51,12 @@ impl Contract {
         require!(self.approved_codehashes.contains(&worker.codehash));
     }
 
-    pub fn register_worker(&mut self, checksum: String, codehash: String) -> bool {
+    pub fn register_worker(&mut self, codehash: String) -> bool {
         // THIS IS A LOCAL DEV CONTRACT, SKIPPING ATTESTATION CHECKS
 
         let predecessor = env::predecessor_account_id();
         self.worker_by_account_id
-            .insert(predecessor, Worker { checksum, codehash });
+            .insert(predecessor, Worker { codehash });
 
         true
     }

@@ -7,8 +7,9 @@
     "author": "Matt Lockyer <github.com/mattlockyer>",
     "license": "MIT",
     "scripts": {
-        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json",
-        "build:proxy": "cd contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm&& cd ..",
+        "build:proxy": "cd ./contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
+        "deploy:proxy": "node ./scripts/deploy.js",
+        "build": "tsup src/* --format cjs --dts && rm -rf docker/dist && mkdir docker/dist && cp -a dist/* docker/dist/ && cp .env.development.local docker/.env.development.local && cp package.json dist/package.json",
         "deploy": "npm publish --access public"
     },
     "devDependencies": {

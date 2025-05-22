@@ -3,6 +3,9 @@
     "name": "docker",
     "packageManager": "yarn@4.9.1",
     "scripts": {
+        "docker:build": "sudo docker build -t myapp . && sudo docker run -p 3000:3000 --env-file .env.development.local --rm -e PORT=3000 myapp",
+        "docker:prune": "sudo docker system prune",
+        "docker:restart": "sudo systemctl restart docker",
         "start": "yarn node app.js"
     },
     "dependencies": {

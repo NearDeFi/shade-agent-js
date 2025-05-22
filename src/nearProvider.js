@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
     // will load for browser and backend
-    dotenv.config({ path: './.env.development.local' });
+    dotenv.config({ path: '../.env.development.local' });
 } else {
     // load .env in production
     dotenv.config();
@@ -16,21 +16,18 @@ const {
     utils: { PublicKey },
 } = nearAPI;
 
-// from .env
-let _contractId = process.env.NEXT_PUBLIC_contractId;
+// get contractId
+const _contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
 export const contractId = _contractId;
 export const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
-// from .env.development.local
-let secretKey = process.env.NEXT_PUBLIC_secretKey;
-let _accountId = process.env.NEXT_PUBLIC_accountId;
 
+// setup keystore, set funding account and key
+let _accountId = process.env.NEAR_ACCOUNT_ID;
+// console.log('accountId, contractId', _accountId, _contractId);
+const { secretKey } = parseSeedPhrase(process.env.NEAR_SEED_PHRASE);
 const keyStore = new keyStores.InMemoryKeyStore();
-
-// local and running an api endpoint we want NEAR mainnet calls from our NEAR mainnet account
-if (networkId === 'mainnet' && process.env.NEAR_ACCOUNT_ID) {
-    _accountId = process.env.NEAR_ACCOUNT_ID;
-    secretKey = parseSeedPhrase(process.env.NEAR_SEED_PHRASE).secretKey;
-}
+const keyPair = KeyPair.fromString(secretKey);
+keyStore.setKey(networkId, _accountId, keyPair);
 
 const config =
     networkId === 'testnet'
@@ -62,16 +59,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * @param {string} secretKey - Account's secret key
  */
 export const setKey = (accountId, secretKey) => {
-    if (!accountId || !secretKey) return;
+    if (!accountId || !secretKey) {
+        return console.log('ERROR: setKey missing args');
+    }
     _accountId = accountId;
     const keyPair = KeyPair.fromString(secretKey);
     // set in-memory keystore only
+    // console.log('setKey', networkId, accountId, keyPair);
     keyStore.setKey(networkId, accountId, keyPair);
 };
-// .env.development.local - automatically set key to dev account
-if (secretKey) {
-    setKey(_accountId, secretKey);
-}
 
 /**
  * Gets the development account's key pair from environment variables
