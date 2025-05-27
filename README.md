@@ -1,3 +1,11 @@
+# Shade Agent JS - CLI, Docker, Sandbox
+
+Notes:
+
+-   proxy global hash == GkNZkHqZP3wWJWMnxBeYXutorzEv44i2SJFyhm9kq1eF
+-   Command to deploy proxy contract, need to replace with ENV Vars
+    near contract deploy [NEAR_ACCOUNT_ID] use-global-hash GkNZkHqZP3wWJWMnxBeYXutorzEv44i2SJFyhm9kq1eF with-init-call init json-args '{"owner_id":"[NEAR_ACCOUNT_ID]"}' prepaid-gas '100.0 Tgas' attached-deposit '0 NEAR' network-config testnet sign-with-seed-phrase '[NEAR_SEED_PHRASE]' --seed-phrase-hd-path 'm/44'\''/397'\''/0'\''' send
+
 # Shade Agent JS
 
 This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/) adn deploying your own fork of this template.

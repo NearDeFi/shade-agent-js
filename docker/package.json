@@ -3,13 +3,14 @@
     "name": "docker",
     "packageManager": "yarn@4.9.1",
     "scripts": {
-        "docker:build": "sudo docker build -t myapp . && sudo docker run -p 3000:3000 --env-file .env.development.local --rm -e PORT=3000 myapp",
+        "docker:test": "sudo docker build -t myapp . && sudo docker run -p 3000:3000 --env-file .env.development.local --rm -e PORT=3000 myapp",
         "docker:prune": "sudo docker system prune",
         "docker:restart": "sudo systemctl restart docker",
         "start": "yarn node app.js"
     },
     "dependencies": {
         "@hono/node-server": "^1.14.2",
+        "dotenv": "^16.5.0",
         "hono": "^4.7.10"
     }
 }

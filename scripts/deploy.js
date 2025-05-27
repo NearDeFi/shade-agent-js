@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import fs from 'fs';
 import * as dotenv from 'dotenv';
 dotenv.config({ path: './.env.development.local' });
@@ -14,7 +15,17 @@ const {
         format: { parseNearAmount },
     },
 } = nearAPI;
-const gas = BigInt('300000000000000');
+
+const DEPLOY_BYTES = !!process.argv[2] && process.argv[2] === 'bytes';
+const CODEHASH = process.env.CODEHASH || 'proxy';
+const GLOBAL_CONTRACT_HASH =
+    CODEHASH === 'proxy'
+        ? 'GkNZkHqZP3wWJWMnxBeYXutorzEv44i2SJFyhm9kq1eF'
+        : 'AL6bWC2rJMYUtSqx6edn2BMRH4aM9V98EaHmGbLb4EQt';
+const HD_PATH = `"m/44'/397'/0'"`;
+const FUNDING_AMOUNT = parseNearAmount('1');
+const GAS = BigInt('300000000000000');
+
 const getAccount = (id) => new Account(connection, id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -27,6 +38,7 @@ const { secretKey } = parseSeedPhrase(process.env.NEAR_SEED_PHRASE);
 const keyStore = new keyStores.InMemoryKeyStore();
 const keyPair = KeyPair.fromString(secretKey);
 keyStore.setKey(networkId, accountId, keyPair);
+keyStore.setKey(networkId, contractId, keyPair);
 
 // config near
 const config =
@@ -49,17 +61,7 @@ const near = new Near(config);
 const { connection } = near;
 
 // deploys sandbox contract with codehash if provided, otherwise deploys proxy contract
-const deploy = async (codehash) => {
-    let wasmPath, fundingAmount;
-    if (codehash) {
-        return console.log('Sandbox WIP');
-    } else {
-        codehash = 'proxy';
-        wasmPath = './contracts/proxy/target/near/contract.wasm';
-        fundingAmount = parseNearAmount('5');
-        keyStore.setKey(networkId, contractId, keyPair);
-    }
-
+const deploy = async () => {
     try {
         const account = getAccount(contractId);
         await account.deleteAccount(accountId);
@@ -74,7 +76,7 @@ const deploy = async (codehash) => {
         await account.createAccount(
             contractId,
             keyPair.getPublicKey(),
-            fundingAmount,
+            FUNDING_AMOUNT,
         );
     } catch (e) {
         console.log('error createAccount', e);
@@ -82,12 +84,28 @@ const deploy = async (codehash) => {
 
     await sleep(1000);
 
-    const file = fs.readFileSync(wasmPath);
     let account = getAccount(contractId);
-    await account.deployContract(file);
-    console.log('deployed bytes', file.byteLength);
-    const balance = await account.getAccountBalance();
-    console.log('contract balance', balance);
+    if (DEPLOY_BYTES) {
+        // deploys the contract bytes (original method and requires more funding)
+        const file = fs.readFileSync(
+            `./contracts/${
+                CODEHASH === 'proxy' ? 'proxy' : 'sandbox'
+            }/target/near/contract.wasm`,
+        );
+        await account.deployContract(file);
+        console.log('deployed bytes', file.byteLength);
+        const balance = await account.getAccountBalance();
+        console.log('contract balance', balance);
+    } else {
+        // deploys global contract using near-cli command
+        try {
+            execSync(
+                `near contract deploy ${contractId} use-global-hash ${GLOBAL_CONTRACT_HASH} without-init-call network-config testnet sign-with-seed-phrase '${process.env.NEAR_SEED_PHRASE}' --seed-phrase-hd-path ${HD_PATH} send`,
+            );
+        } catch (e) {
+            console.log('Error deploying global contract', e);
+        }
+    }
 
     await sleep(1000);
 
@@ -97,7 +115,7 @@ const deploy = async (codehash) => {
         args: {
             owner_id: accountId,
         },
-        gas,
+        gas: GAS,
     });
 
     console.log('initRes', initRes);
@@ -109,9 +127,9 @@ const deploy = async (codehash) => {
         contractId,
         methodName: 'approve_codehash',
         args: {
-            codehash,
+            codehash: CODEHASH,
         },
-        gas,
+        gas: GAS,
     });
 
     console.log('approveRes', approveRes);
