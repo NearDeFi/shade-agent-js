@@ -3,9 +3,12 @@
     "name": "docker",
     "packageManager": "yarn@4.9.1",
     "scripts": {
+        "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local",
         "docker:test": "sudo docker build -t myapp . && sudo docker run -p 3000:3000 --env-file .env.development.local --rm -e PORT=3000 myapp",
         "docker:prune": "sudo docker system prune",
         "docker:restart": "sudo systemctl restart docker",
+        "docker:image": "sudo docker build --no-cache -t mattdlockyer/shade-agent-api:latest .",
+        "docker:push": "sudo docker push mattdlockyer/shade-agent-api",
         "start": "yarn node app.js"
     },
     "dependencies": {

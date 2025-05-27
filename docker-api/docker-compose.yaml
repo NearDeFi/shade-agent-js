@@ -1,0 +1,25 @@
+services:
+    shade-agent-api:
+        environment:
+            NEAR_ACCOUNT_ID: ${NEAR_ACCOUNT_ID}
+            NEAR_SEED_PHRASE: ${NEAR_SEED_PHRASE}
+            CODEHASH: ${CODEHASH}
+            NEXT_PUBLIC_contractId: ${NEXT_PUBLIC_contractId}
+            SHADE_AGENT_PORT: ${SHADE_AGENT_PORT}
+        platform: linux/amd64 # Explicitly set for TDX
+        image: mattdlockyer/shade-agent-api@sha256:a99cbc1c5b45bdbad4691f49019e7fc91efd6ba1e6dd3d0c9632c1dcc94b69fc
+        container_name: shade-agent-api
+        ports:
+            - '3140:3140'
+        volumes:
+            - /var/run/tappd.sock:/var/run/tappd.sock
+        restart: always
+    shade-agent-api-test:
+        platform: linux/amd64 # Explicitly set for TDX
+        image: mattdlockyer/shade-agent-api-test@sha256:105015ca023e386df24f80fe45f6545f206df75e8f37debee00f603057da462b
+        container_name: shade-agent-api-test
+        ports:
+            - '3000:3000'
+        volumes:
+            - /var/run/tappd.sock:/var/run/tappd.sock
+        restart: always

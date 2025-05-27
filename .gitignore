@@ -1,8 +1,7 @@
 node_modules
 
 # production
-/dist
-/docker/dist
+dist
 
 # local env files
 .env

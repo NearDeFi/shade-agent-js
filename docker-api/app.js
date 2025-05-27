@@ -24,7 +24,7 @@ import {
 // TODOs - update sandbox contract, build, deploy, test against it with sample data from shade-agent-template/tests
 
 // config
-const PORT = process.env.SHADE_AGENT_PORT || 3000;
+const PORT = process.env.SHADE_AGENT_PORT || 3140;
 
 // DEBUGGING provide entropy
 const HASH = Buffer.from([
