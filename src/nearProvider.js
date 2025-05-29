@@ -1,3 +1,5 @@
+import { execSync } from 'child_process';
+import fs from 'fs';
 import * as dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
     // will load for browser and backend
@@ -13,21 +15,38 @@ const {
     Account,
     KeyPair,
     keyStores,
-    utils: { PublicKey },
+    utils: {
+        PublicKey,
+        format: { parseNearAmount },
+    },
 } = nearAPI;
 
-// get contractId
+// deploy the contract bytes NOT the global contract if this is set... to anything
+const DEPLOY_BYTES = process.env.DEPLOY_BYTES;
+// default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
+const CODEHASH = process.env.CODEHASH || 'proxy';
+const GLOBAL_CONTRACT_HASH =
+    CODEHASH === 'proxy'
+        ? 'GkNZkHqZP3wWJWMnxBeYXutorzEv44i2SJFyhm9kq1eF'
+        : 'AL6bWC2rJMYUtSqx6edn2BMRH4aM9V98EaHmGbLb4EQt';
+const HD_PATH = `"m/44'/397'/0'"`;
+const FUNDING_AMOUNT = parseNearAmount('1');
+const GAS = BigInt('300000000000000');
+
+// local vars for module
 const _contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
 export const contractId = _contractId;
 export const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
-
 // setup keystore, set funding account and key
-let _accountId = process.env.NEAR_ACCOUNT_ID;
+let _accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');
 // console.log('accountId, contractId', _accountId, _contractId);
-const { secretKey } = parseSeedPhrase(process.env.NEAR_SEED_PHRASE);
+const { secretKey } = parseSeedPhrase(
+    process.env.NEAR_SEED_PHRASE.replaceAll('"', ''),
+);
 const keyStore = new keyStores.InMemoryKeyStore();
 const keyPair = KeyPair.fromString(secretKey);
 keyStore.setKey(networkId, _accountId, keyPair);
+keyStore.setKey(networkId, _contractId, keyPair);
 
 const config =
     networkId === 'testnet'
@@ -48,7 +67,6 @@ const config =
 const near = new Near(config);
 const { connection } = near;
 const { provider } = connection;
-const gas = BigInt('300000000000000');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // helpers
@@ -141,7 +159,7 @@ export const contractView = async ({
             contractId,
             methodName,
             args,
-            gas,
+            gas: GAS,
         });
     } catch (e) {
         if (/deserialize/gi.test(JSON.stringify(e))) {
@@ -176,7 +194,7 @@ export const contractCall = async ({
             contractId,
             methodName,
             args,
-            gas,
+            gas: GAS,
             attachedDeposit,
         });
     } catch (e) {
@@ -237,4 +255,88 @@ const parseSuccessValue = (transaction) => {
             )}`,
         );
     }
+};
+
+/**
+ * Deploys sandbox contract with codehash if provided, otherwise deploys proxy contract
+ */
+export const deployContract = async () => {
+    const accountId = _accountId;
+    try {
+        const account = getAccount(contractId);
+        await account.deleteAccount(accountId);
+    } catch (e) {
+        console.log('error deleteAccount', e);
+    }
+
+    console.log('contract account deleted:', contractId);
+    await sleep(1000);
+
+    try {
+        const account = getAccount(accountId);
+        await account.createAccount(
+            contractId,
+            keyPair.getPublicKey(),
+            FUNDING_AMOUNT,
+        );
+    } catch (e) {
+        console.log('error createAccount', e);
+    }
+
+    console.log('contract account created:', contractId);
+    await sleep(1000);
+
+    let account = getAccount(contractId);
+    if (DEPLOY_BYTES) {
+        // deploys the contract bytes (original method and requires more funding)
+        const file = fs.readFileSync(
+            `./contracts/${
+                CODEHASH === 'proxy' ? 'proxy' : 'sandbox'
+            }/target/near/contract.wasm`,
+        );
+        await account.deployContract(file);
+        console.log('deployed bytes', file.byteLength);
+        const balance = await account.getAccountBalance();
+        console.log('contract balance', balance);
+    } else {
+        // deploys global contract using near-cli command
+        try {
+            execSync(
+                `near contract deploy ${contractId} use-global-hash ${GLOBAL_CONTRACT_HASH} without-init-call network-config testnet sign-with-seed-phrase '${process.env.NEAR_SEED_PHRASE}' --seed-phrase-hd-path ${HD_PATH} send`,
+            );
+        } catch (e) {
+            console.log('Error deploying global contract', e);
+        }
+    }
+
+    console.log('contract deployed:', contractId);
+    await sleep(1000);
+
+    const initRes = await account.functionCall({
+        contractId,
+        methodName: 'init',
+        args: {
+            owner_id: accountId,
+        },
+        gas: GAS,
+    });
+
+    console.log('contract init result', initRes.status.SuccessValue === '');
+    await sleep(1000);
+
+    // NEEDS TO MATCH docker-compose.yaml CODEHASH
+    account = getAccount(accountId);
+    const approveRes = await account.functionCall({
+        contractId,
+        methodName: 'approve_codehash',
+        args: {
+            codehash: CODEHASH,
+        },
+        gas: GAS,
+    });
+
+    console.log(
+        'contract approve_codehash result',
+        approveRes.status.SuccessValue === '',
+    );
 };

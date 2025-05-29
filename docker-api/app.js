@@ -6,7 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
     // load .env in production
     dotenv.config();
 }
-
+import { createHash } from 'node:crypto';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { Hono } from 'hono';
@@ -19,19 +19,14 @@ import {
     parseNearAmount,
     contractView,
     contractCall,
+    deployContract,
 } from './dist/index.cjs';
 
 // TODOs - update sandbox contract, build, deploy, test against it with sample data from shade-agent-template/tests
 
 // config
 const PORT = process.env.SHADE_AGENT_PORT || 3140;
-
-// DEBUGGING provide entropy
-const HASH = Buffer.from([
-    178, 2, 207, 241, 229, 218, 132, 149, 56, 89, 120, 187, 1, 38, 42, 36, 224,
-    96, 227, 87, 44, 203, 34, 69, 190, 148, 125, 178, 72, 196, 162, 58,
-]);
-const CODEHASH = process.env.CODEHASH;
+const CODEHASH = process.env.CODEHASH.replaceAll('"', '');
 
 let workerAccountId;
 
@@ -60,7 +55,11 @@ app.get('/api/test-sign', async (c) => {
         method: 'POST',
         body: JSON.stringify({
             path,
-            payload: [...HASH],
+            payload: [
+                ...(await createHash('sha256')
+                    .update(Buffer.from('testing'))
+                    .digest('hex')),
+            ],
         }),
     }).then((r) => r.json());
 
@@ -68,21 +67,33 @@ app.get('/api/test-sign', async (c) => {
 });
 
 async function boot() {
+    // deploy contracts
+    if (process.env.DEPLOY_CONTRACT && process.env.DEPLOY_CONTRACT === 'true') {
+        await deployContract();
+    }
+
     // get account before switching to workerAccountId
     const account = await getAccount();
-    // get new ephemeral (unless hash provided) worker account
-    workerAccountId = await deriveWorkerAccount(HASH ? HASH : undefined);
+    const entropy = process.env.ENTROPY;
+    // get new ephemeral (unless entropy was provided) worker account
+    workerAccountId = await deriveWorkerAccount(
+        entropy
+            ? await createHash('sha256')
+                  .update(Buffer.from(entropy))
+                  .digest('hex')
+            : undefined,
+    );
     console.log('workerAccountId', workerAccountId);
     // fund workerAccountId
     const balance = await getBalance(workerAccountId);
+
     // console.log('balance', balance.available);
     if (BigInt(balance.available) < BigInt(parseNearAmount('0.25'))) {
-        console.log('funding account');
-        await account.sendMoney(
-            workerAccountId,
-            BigInt(parseNearAmount('0.3')) - BigInt(balance.available),
-        );
+        const diff = BigInt(parseNearAmount('0.3')) - BigInt(balance.available);
+        console.log('funding', workerAccountId, diff);
+        await account.sendMoney(workerAccountId, diff);
     }
+
     // check if worker is registered
     try {
         const getWorkerRes = await contractView({

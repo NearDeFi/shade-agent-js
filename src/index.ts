@@ -8,6 +8,7 @@ export {
     contractView,
     contractCall,
     networkId,
+    deployContract,
 } from './nearProvider';
 export {
     parseNearAmount,

@@ -16,7 +16,9 @@ const {
     },
 } = nearAPI;
 
+// deploy the contract bytes NOT the global contract if there's a cmd line arg of "bytes"
 const DEPLOY_BYTES = !!process.argv[2] && process.argv[2] === 'bytes';
+// default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
 const CODEHASH = process.env.CODEHASH || 'proxy';
 const GLOBAL_CONTRACT_HASH =
     CODEHASH === 'proxy'
