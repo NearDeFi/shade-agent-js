@@ -3,11 +3,15 @@ services:
         environment:
             NEAR_ACCOUNT_ID: ${NEAR_ACCOUNT_ID}
             NEAR_SEED_PHRASE: ${NEAR_SEED_PHRASE}
-            CODEHASH: ${CODEHASH}
+            DEPLOY_CONTRACT: ${DEPLOY_CONTRACT}
+            API_CODEHASH: ${API_CODEHASH}
+            APP_CODEHASH: ${APP_CODEHASH}
+            ENTROPY: ${ENTROPY}
             NEXT_PUBLIC_contractId: ${NEXT_PUBLIC_contractId}
             SHADE_AGENT_PORT: ${SHADE_AGENT_PORT}
         platform: linux/amd64 # Explicitly set for TDX
-        image: mattdlockyer/shade-agent-api@sha256:a99cbc1c5b45bdbad4691f49019e7fc91efd6ba1e6dd3d0c9632c1dcc94b69fc
+        # shade-agent-api-image
+        image: mattdlockyer/shade-agent-api@sha256:1eb4e9a1544add8c6b8f2f0bf857b58f730742cf48829fbfdff6b7ba97e9b95b
         container_name: shade-agent-api
         ports:
             - '3140:3140'
@@ -16,7 +20,8 @@ services:
         restart: always
     shade-agent-api-test:
         platform: linux/amd64 # Explicitly set for TDX
-        image: mattdlockyer/shade-agent-api-test@sha256:105015ca023e386df24f80fe45f6545f206df75e8f37debee00f603057da462b
+        # shade-agent-app-image
+        image: mattdlockyer/shade-agent-api-test@sha256:fcd48fbfeeafb3ffbb716e0eccaaeef9313a493894886798b5dfc16b81634a8a
         container_name: shade-agent-api-test
         ports:
             - '3000:3000'

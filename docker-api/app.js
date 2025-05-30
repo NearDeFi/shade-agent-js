@@ -22,11 +22,15 @@ import {
     deployContract,
 } from './dist/index.cjs';
 
-// TODOs - update sandbox contract, build, deploy, test against it with sample data from shade-agent-template/tests
+// TODOs - update sandbox contract to pull hashes based on comments, include comment schema in docker-compose.yaml so hashes can be extracted with splits
+
+// TODO - deploy contracts seperately and not on boot, Phala doesn't have near-cli-rs installed and don't want to wait for that on boot... too much
+
+// Another option is to include near-cli-rs test this tomorrow
 
 // config
 const PORT = process.env.SHADE_AGENT_PORT || 3140;
-const CODEHASH = process.env.CODEHASH.replaceAll('"', '');
+const APP_CODEHASH = process.env.APP_CODEHASH.replaceAll('"', '');
 
 let workerAccountId;
 
@@ -102,7 +106,7 @@ async function boot() {
                 account_id: workerAccountId,
             },
         });
-        if (getWorkerRes.codehash === CODEHASH) {
+        if (getWorkerRes.codehash === APP_CODEHASH) {
             return console.log('getWorkerRes', true);
         }
     } catch (e) {
@@ -120,7 +124,7 @@ async function boot() {
     // register worker
     let registerWorkerRes;
     try {
-        registerWorkerRes = await registerWorker(CODEHASH);
+        registerWorkerRes = await registerWorker();
     } catch (e) {
         console.log('registerWorker Error:', e);
         registerWorkerRes = false;

@@ -1,7 +1,7 @@
 use hex::{decode, encode};
 use near_sdk::{
     env::{self, block_timestamp},
-    log, near, require,
+    near, require,
     store::{IterableMap, IterableSet},
     AccountId, Gas, NearToken, PanicOnDefault, Promise,
 };
@@ -72,14 +72,20 @@ impl Contract {
         let now = block_timestamp() / 1000000000;
         let result = verify::verify(&quote, &collateral, now).expect("report is not verified");
         let rtmr3 = encode(result.report.as_td10().unwrap().rt_mr3.to_vec());
-        let codehash = collateral::verify_codehash(tcb_info, rtmr3);
+        let (shade_agent_api_image, shade_agent_app_image) =
+            collateral::verify_codehash(tcb_info, rtmr3);
 
-        // uncomment this line to only allow workers to register if their codehash arg is approved
-        // require!(self.approved_codehashes.contains(&codehash));
+        require!(self.approved_codehashes.contains(&shade_agent_api_image));
+        require!(self.approved_codehashes.contains(&shade_agent_app_image));
 
         let predecessor = env::predecessor_account_id();
-        self.worker_by_account_id
-            .insert(predecessor, Worker { checksum, codehash });
+        self.worker_by_account_id.insert(
+            predecessor,
+            Worker {
+                checksum,
+                codehash: shade_agent_app_image,
+            },
+        );
 
         true
     }

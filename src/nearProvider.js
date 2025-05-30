@@ -24,11 +24,12 @@ const {
 // deploy the contract bytes NOT the global contract if this is set... to anything
 const DEPLOY_BYTES = process.env.DEPLOY_BYTES;
 // default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
-const CODEHASH = process.env.CODEHASH || 'proxy';
+const API_CODEHASH = process.env.API_CODEHASH || 'api';
+const APP_CODEHASH = process.env.APP_CODEHASH || 'proxy';
 const GLOBAL_CONTRACT_HASH =
-    CODEHASH === 'proxy'
-        ? 'GkNZkHqZP3wWJWMnxBeYXutorzEv44i2SJFyhm9kq1eF'
-        : 'AL6bWC2rJMYUtSqx6edn2BMRH4aM9V98EaHmGbLb4EQt';
+    APP_CODEHASH === 'proxy'
+        ? '2pSLLgLnAM9PYD7Rj6SpdK9tJRz48GQ7GrnAXK6tmm8u'
+        : '7YNvcAExky2iRBxJa5wEPofG9ddgmRLDCGHGFAuvBbL2';
 const HD_PATH = `"m/44'/397'/0'"`;
 const FUNDING_AMOUNT = parseNearAmount('1');
 const GAS = BigInt('300000000000000');
@@ -291,7 +292,7 @@ export const deployContract = async () => {
         // deploys the contract bytes (original method and requires more funding)
         const file = fs.readFileSync(
             `./contracts/${
-                CODEHASH === 'proxy' ? 'proxy' : 'sandbox'
+                APP_CODEHASH === 'proxy' ? 'proxy' : 'sandbox'
             }/target/near/contract.wasm`,
         );
         await account.deployContract(file);
@@ -324,19 +325,36 @@ export const deployContract = async () => {
     console.log('contract init result', initRes.status.SuccessValue === '');
     await sleep(1000);
 
-    // NEEDS TO MATCH docker-compose.yaml CODEHASH
+    // NEEDS TO MATCH docker-compose.yaml shade-agent-api-image
     account = getAccount(accountId);
-    const approveRes = await account.functionCall({
+    const approveApiRes = await account.functionCall({
         contractId,
         methodName: 'approve_codehash',
         args: {
-            codehash: CODEHASH,
+            codehash: API_CODEHASH,
         },
         gas: GAS,
     });
 
     console.log(
-        'contract approve_codehash result',
-        approveRes.status.SuccessValue === '',
+        'api approve_codehash result',
+        approveApiRes.status.SuccessValue === '',
+    );
+    await sleep(1000);
+
+    // NEEDS TO MATCH docker-compose.yaml shade-agent-app-image
+    account = getAccount(accountId);
+    const approveAppRes = await account.functionCall({
+        contractId,
+        methodName: 'approve_codehash',
+        args: {
+            codehash: APP_CODEHASH,
+        },
+        gas: GAS,
+    });
+
+    console.log(
+        'app approve_codehash result',
+        approveAppRes.status.SuccessValue === '',
     );
 };

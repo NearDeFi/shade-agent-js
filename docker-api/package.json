@@ -3,7 +3,8 @@
     "name": "docker",
     "packageManager": "yarn@4.9.1",
     "scripts": {
-        "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local",
+        "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local --teepod-id 6",
+        "deploy:global": "node ../scripts/deploy-global.js",
         "docker:test": "sudo docker build -t myapp . && sudo docker run -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
         "docker:prune": "sudo docker system prune",
         "docker:restart": "sudo systemctl restart docker",
