@@ -1,4 +1,5 @@
 services:
+    # always have shade-agent-api first in order of services
     shade-agent-api:
         environment:
             NEAR_ACCOUNT_ID: ${NEAR_ACCOUNT_ID}
@@ -21,7 +22,7 @@ services:
     shade-agent-api-test:
         platform: linux/amd64 # Explicitly set for TDX
         # shade-agent-app-image
-        image: mattdlockyer/shade-agent-api-test@sha256:fcd48fbfeeafb3ffbb716e0eccaaeef9313a493894886798b5dfc16b81634a8a
+        image: mattdlockyer/shade-agent-api-test@sha256:dffa861a4e47bdf9a139035a66a895a84bf151220bf33044d873a4ac9cd2c40a
         container_name: shade-agent-api-test
         ports:
             - '3000:3000'

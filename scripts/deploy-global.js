@@ -3,7 +3,7 @@ import fs from 'fs';
 import * as dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
     // will load for browser and backend
-    dotenv.config({ path: '../docker-api/.env.development.local' });
+    dotenv.config({ path: '../docker-api-test/.env.development.local' });
 } else {
     // load .env in production
     dotenv.config();

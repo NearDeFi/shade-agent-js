@@ -3,7 +3,10 @@
     "name": "docker",
     "packageManager": "yarn@4.9.1",
     "scripts": {
-        "phala:test": "phala cvms create --name my-tee-app --compose ./docker-compose.yaml --env-file ./.env.development.local",
+        "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local --teepod-id 8",
+        "deploy:global": "node ../scripts/deploy-global.js",
+        "docker:script": "node ../scripts/docker.js",
+        "all:scripts": "yarn docker:script && yarn deploy:global && yarn phala:test",
         "docker:test": "sudo docker build -t myapp . && sudo docker run -p 3000:3000 --env-file .env.development.local --rm -e PORT=3000 myapp",
         "docker:prune": "sudo docker system prune",
         "docker:restart": "sudo systemctl restart docker",
