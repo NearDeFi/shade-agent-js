@@ -19,7 +19,6 @@ import {
     parseNearAmount,
     contractView,
     contractCall,
-    deployContract,
 } from './dist/index.cjs';
 
 // TODOs - update sandbox contract to pull hashes based on comments, include comment schema in docker-compose.yaml so hashes can be extracted with splits
@@ -29,7 +28,10 @@ import {
 // Another option is to include near-cli-rs test this tomorrow
 
 // config
+const contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
+const IS_SANDBOX = /sandbox/gim.test(contractId);
 const PORT = process.env.SHADE_AGENT_PORT || 3140;
+const API_CODEHASH = process.env.API_CODEHASH.replaceAll('"', '');
 const APP_CODEHASH = process.env.APP_CODEHASH.replaceAll('"', '');
 
 let workerAccountId;
@@ -60,9 +62,9 @@ app.get('/api/test-sign', async (c) => {
         body: JSON.stringify({
             path,
             payload: [
-                ...(await createHash('sha256')
-                    .update(Buffer.from('testing'))
-                    .digest('hex')),
+                ...(
+                    await createHash('sha256').update(Buffer.from('testing'))
+                ).digest(),
             ],
         }),
     }).then((r) => r.json());
@@ -71,20 +73,13 @@ app.get('/api/test-sign', async (c) => {
 });
 
 async function boot() {
-    // deploy contracts
-    if (process.env.DEPLOY_CONTRACT && process.env.DEPLOY_CONTRACT === 'true') {
-        await deployContract();
-    }
-
     // get account before switching to workerAccountId
     const account = await getAccount();
     const entropy = process.env.ENTROPY;
     // get new ephemeral (unless entropy was provided) worker account
     workerAccountId = await deriveWorkerAccount(
         entropy
-            ? await createHash('sha256')
-                  .update(Buffer.from(entropy))
-                  .digest('hex')
+            ? (await createHash('sha256').update(Buffer.from(entropy))).digest()
             : undefined,
     );
     console.log('workerAccountId', workerAccountId);
@@ -106,7 +101,9 @@ async function boot() {
                 account_id: workerAccountId,
             },
         });
-        if (getWorkerRes.codehash === APP_CODEHASH) {
+        if (
+            getWorkerRes.codehash === IS_SANDBOX ? APP_CODEHASH : API_CODEHASH
+        ) {
             return console.log('getWorkerRes', true);
         }
     } catch (e) {
@@ -124,7 +121,7 @@ async function boot() {
     // register worker
     let registerWorkerRes;
     try {
-        registerWorkerRes = await registerWorker();
+        registerWorkerRes = await registerWorker(!IS_SANDBOX && API_CODEHASH);
     } catch (e) {
         console.log('registerWorker Error:', e);
         registerWorkerRes = false;

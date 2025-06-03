@@ -1,35 +1,28 @@
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { Hono } from 'hono';
+import { createHash } from 'node:crypto';
 
 const PORT = 3000;
 const API_PORT = 3140;
+
+import { getWorkerAccount, signWithWorker } from './dist/index.cjs';
 
 const app = new Hono();
 
 app.use('/*', cors());
 
 app.get('/api/address', async (c) => {
-    const res = await fetch(
-        `http://shade-agent-api:${API_PORT}/api/address`,
-    ).then((r) => r.json());
+    const res = await getWorkerAccount();
 
     return c.json(res);
 });
 
 app.get('/api/test-sign', async (c) => {
     const path = 'foo';
-    const res = await fetch(`http://shade-agent-api:${API_PORT}/api/sign`, {
-        method: 'POST',
-        body: JSON.stringify({
-            path,
-            payload: [
-                ...(await createHash('sha256')
-                    .update(Buffer.from('testing'))
-                    .digest('hex')),
-            ],
-        }),
-    }).then((r) => r.json());
+    const res = await signWithWorker(path, [
+        ...(await createHash('sha256').update(Buffer.from('testing'))).digest(),
+    ]);
 
     return c.json(res);
 });

@@ -12,7 +12,8 @@
         "docker:restart": "sudo systemctl restart docker",
         "docker:image": "sudo docker build --no-cache -t mattdlockyer/shade-agent-api-test:latest .",
         "docker:push": "sudo docker push mattdlockyer/shade-agent-api-test",
-        "start": "yarn node app.js"
+        "start": "yarn node app.js",
+        "dev": "yarn node app.js"
     },
     "dependencies": {
         "@hono/node-server": "^1.14.2",

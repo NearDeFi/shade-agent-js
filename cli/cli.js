@@ -11,7 +11,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 import fs from 'fs';
 import { readFileSync, writeFileSync } from 'fs';
-import { execSync } from 'child_process';
+import { spawn, execSync } from 'child_process';
+import readline from 'readline';
 import { parseSeedPhrase } from 'near-seed-phrase';
 import * as nearAPI from 'near-api-js';
 const {
@@ -25,22 +26,24 @@ const {
     },
 } = nearAPI;
 
+const _contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
+export const contractId = _contractId;
+
+const IS_SANDBOX = /sandbox/gim.test(contractId);
+
 // deploy the contract bytes NOT the global contract if this is set... to anything
 const DEPLOY_BYTES = process.env.DEPLOY_BYTES;
 // default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
 const API_CODEHASH = process.env.API_CODEHASH || 'api';
 const APP_CODEHASH = process.env.APP_CODEHASH || 'proxy';
-const GLOBAL_CONTRACT_HASH =
-    APP_CODEHASH === 'proxy'
-        ? '2pSLLgLnAM9PYD7Rj6SpdK9tJRz48GQ7GrnAXK6tmm8u'
-        : '7YNvcAExky2iRBxJa5wEPofG9ddgmRLDCGHGFAuvBbL2';
+const GLOBAL_CONTRACT_HASH = IS_SANDBOX
+    ? '7YNvcAExky2iRBxJa5wEPofG9ddgmRLDCGHGFAuvBbL2'
+    : '2pSLLgLnAM9PYD7Rj6SpdK9tJRz48GQ7GrnAXK6tmm8u';
 const HD_PATH = `"m/44'/397'/0'"`;
 const FUNDING_AMOUNT = parseNearAmount('1');
 const GAS = BigInt('300000000000000');
 
 // local vars for module
-const _contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
-export const contractId = _contractId;
 export const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
 // setup keystore, set funding account and key
 let _accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');
@@ -87,66 +90,74 @@ async function main() {
     }
     console.log('docker restarted');
 
-    // docker image build
+    if (IS_SANDBOX) {
+        // docker image build
 
-    console.log('docker building image...');
-    try {
-        execSync(
-            `sudo docker build --no-cache -t ${process.env.DOCKER_TAG}:latest .`,
-        );
-    } catch (e) {
-        console.log('Error docker build', e);
-        return;
+        console.log('docker building image...');
+        try {
+            execSync(
+                `sudo docker build --no-cache -t ${process.env.DOCKER_TAG}:latest .`,
+            );
+        } catch (e) {
+            console.log('Error docker build', e);
+            return;
+        }
+        console.log('docker image built');
+
+        // docker hub push and get codehash
+
+        console.log('docker pushing image...');
+        let NEW_APP_CODEHASH;
+        try {
+            const output = execSync(
+                `sudo docker push ${process.env.DOCKER_TAG}`,
+            );
+            NEW_APP_CODEHASH = output
+                .toString()
+                .match(/sha256:[a-f0-9]{64}/gim)[0]
+                .split('sha256:')[1];
+        } catch (e) {
+            console.log('Error docker push', e);
+            return;
+        }
+        console.log('docker image pushed');
+        // replace codehash in .env.development.local
+
+        try {
+            const path = '.env.development.local';
+            const data = readFileSync(path).toString();
+            const match = data.match(/APP_CODEHASH=[a-f0-9]{64}/gim)[0];
+            const updated = data.replace(
+                match,
+                `APP_CODEHASH=${NEW_APP_CODEHASH}`,
+            );
+            writeFileSync(path, updated, 'utf8');
+        } catch (e) {
+            console.log(
+                'Error replacing codehash in .env.development.local',
+                e,
+            );
+            return;
+        }
+        console.log('codehash replaced in .env.development.local');
+
+        // replace codehash in docker-compose.yaml
+
+        try {
+            const path = 'docker-compose.yaml';
+            const data = readFileSync(path).toString();
+            const match = data.match(/@sha256:[a-f0-9]{64}/gim)[1];
+            const updated = data.replace(match, `@sha256:${NEW_APP_CODEHASH}`);
+            writeFileSync(path, updated, 'utf8');
+        } catch (e) {
+            console.log('Error replacing codehash in docker-compose.yaml', e);
+            return;
+        }
+        console.log('codehash replaced in docker-compose.yaml');
     }
-    console.log('docker image built');
-
-    // docker hub push and get codehash
-
-    console.log('docker pushing image...');
-    let codehash;
-    try {
-        const output = execSync(`sudo docker push ${process.env.DOCKER_TAG}`);
-        codehash = output.toString().match(/sha256:[a-f0-9]{64}/gim)[0];
-    } catch (e) {
-        console.log('Error docker push', e);
-        return;
-    }
-    console.log('docker image pushed');
-
-    // replace codehash in .env.development.local
-
-    try {
-        const path = '.env.development.local';
-        const data = readFileSync(path).toString();
-        const match = data.match(/APP_CODEHASH=[a-f0-9]{64}/gim)[0];
-        const updated = data.replace(
-            match,
-            `APP_CODEHASH=${codehash.split('sha256:')[1]}`,
-        );
-        writeFileSync(path, updated, 'utf8');
-    } catch (e) {
-        console.log('Error replacing codehash in .env.development.local', e);
-        return;
-    }
-    console.log('codehash replaced in .env.development.local');
-
-    // replace codehash in docker-compose.yaml
-
-    try {
-        const path = 'docker-compose.yaml';
-        const data = readFileSync(path).toString();
-        const match = data.match(/@sha256:[a-f0-9]{64}/gim)[1];
-        const updated = data.replace(match, `@${codehash}`);
-        writeFileSync(path, updated, 'utf8');
-    } catch (e) {
-        console.log('Error replacing codehash in docker-compose.yaml', e);
-        return;
-    }
-    console.log('codehash replaced in docker-compose.yaml');
-
     /**
-     * Deploying Global Contracts
-     **/
+     * Deploying Global Contract
+     */
 
     const accountId = _accountId;
     try {
@@ -178,7 +189,7 @@ async function main() {
         // deploys the contract bytes (original method and requires more funding)
         const file = fs.readFileSync(
             `./contracts/${
-                APP_CODEHASH === 'proxy' ? 'proxy' : 'sandbox'
+                IS_SANDBOX ? 'sandbox' : 'proxy'
             }/target/near/contract.wasm`,
         );
         await account.deployContract(file);
@@ -228,38 +239,62 @@ async function main() {
     );
     await sleep(1000);
 
-    // NEEDS TO MATCH docker-compose.yaml shade-agent-app-image
-    account = getAccount(accountId);
-    const approveAppRes = await account.functionCall({
-        contractId,
-        methodName: 'approve_codehash',
-        args: {
-            codehash: APP_CODEHASH,
-        },
-        gas: GAS,
-    });
+    if (IS_SANDBOX) {
+        // NEEDS TO MATCH docker-compose.yaml shade-agent-app-image
+        account = getAccount(accountId);
+        const approveAppRes = await account.functionCall({
+            contractId,
+            methodName: 'approve_codehash',
+            args: {
+                codehash: NEW_APP_CODEHASH,
+            },
+            gas: GAS,
+        });
 
-    console.log(
-        'app approve_codehash result',
-        approveAppRes.status.SuccessValue === '',
-    );
-
-    /**
-     * Deploy on Phala
-     **/
-
-    console.log('deploying to Phala Cloud...');
-    const appNameSplit = process.env.DOCKER_TAG.split('/');
-    const appName = appNameSplit[appNameSplit.length - 1];
-    try {
-        execSync(
-            `phala cvms create --name ${appName} --compose ./docker-compose.yaml --env-file ./.env.development.local --teepod-id 6`,
+        console.log(
+            'app approve_codehash result',
+            approveAppRes.status.SuccessValue === '',
         );
-    } catch (e) {
-        console.log('Error deploying to Phala Cloud', e);
-        return;
+
+        /**
+         * Deploy on Phala
+         */
+
+        console.log('deploying to Phala Cloud...');
+        const appNameSplit = process.env.DOCKER_TAG.split('/');
+        const appName = appNameSplit[appNameSplit.length - 1];
+        try {
+            execSync(
+                `phala cvms create --name ${appName} --compose ./docker-compose.yaml --env-file ./.env.development.local --teepod-id 3`,
+            );
+        } catch (e) {
+            console.log('Error deploying to Phala Cloud', e);
+            return;
+        }
+        console.log('deployed to Phala Cloud');
+    } else {
+        /**
+         * Run api locally so app can use it
+         */
+
+        console.log(
+            'running shade-agent-api in docker locally at http://localhost:3140',
+        );
+        try {
+            const child = spawn(
+                `sudo`,
+                `docker run -p 3140:3140 --env-file .env.development.local --rm -e PORT=3140 mattdlockyer/shade-agent-api@sha256:${API_CODEHASH}`.split(
+                    ' ',
+                ),
+                {
+                    cwd: process.cwd(),
+                    stdio: 'inherit',
+                },
+            );
+        } catch (e) {
+            console.log(e);
+        }
     }
-    console.log('deployed to Phala Cloud');
 }
 
 main();

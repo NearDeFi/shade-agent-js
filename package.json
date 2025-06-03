@@ -10,7 +10,7 @@
         "build:proxy": "cd ./contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "build:sandbox": "cd ./contracts/sandbox && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "deploy:contract": "node ./scripts/deploy.js",
-        "build": "tsup src/* --format cjs --dts && rm -rf docker-api/dist && mkdir docker-api/dist && cp -a dist/* docker-api/dist/ && cp package.json dist/package.json",
+        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json && rm -rf docker-api/dist && mkdir docker-api/dist && cp -a dist/* docker-api/dist/ && rm -rf docker-api-test/dist && mkdir docker-api-test/dist && cp -a dist/* docker-api-test/dist/",
         "deploy": "npm publish --access public"
     },
     "devDependencies": {

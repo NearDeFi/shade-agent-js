@@ -21,17 +21,6 @@ const {
     },
 } = nearAPI;
 
-// deploy the contract bytes NOT the global contract if this is set... to anything
-const DEPLOY_BYTES = process.env.DEPLOY_BYTES;
-// default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
-const API_CODEHASH = process.env.API_CODEHASH || 'api';
-const APP_CODEHASH = process.env.APP_CODEHASH || 'proxy';
-const GLOBAL_CONTRACT_HASH =
-    APP_CODEHASH === 'proxy'
-        ? '2pSLLgLnAM9PYD7Rj6SpdK9tJRz48GQ7GrnAXK6tmm8u'
-        : '7YNvcAExky2iRBxJa5wEPofG9ddgmRLDCGHGFAuvBbL2';
-const HD_PATH = `"m/44'/397'/0'"`;
-const FUNDING_AMOUNT = parseNearAmount('1');
 const GAS = BigInt('300000000000000');
 
 // local vars for module
