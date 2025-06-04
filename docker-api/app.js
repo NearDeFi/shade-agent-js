@@ -19,7 +19,7 @@ import {
     parseNearAmount,
     contractView,
     contractCall,
-} from './dist/index.cjs';
+} from '@neardefi/shade-agent-js';
 
 // TODOs - update sandbox contract to pull hashes based on comments, include comment schema in docker-compose.yaml so hashes can be extracted with splits
 
@@ -82,7 +82,7 @@ async function boot() {
             ? (await createHash('sha256').update(Buffer.from(entropy))).digest()
             : undefined,
     );
-    console.log('workerAccountId', workerAccountId);
+    console.log('worker agent NEAR account ID:', workerAccountId);
     // fund workerAccountId
     const balance = await getBalance(workerAccountId);
 
@@ -104,19 +104,21 @@ async function boot() {
         if (
             getWorkerRes.codehash === IS_SANDBOX ? APP_CODEHASH : API_CODEHASH
         ) {
-            return console.log('getWorkerRes', true);
+            console.log('getWorker response', true);
+            console.log('Shade Agent API ready on port:', PORT);
+            return;
         }
     } catch (e) {
+        // if this isn't the error, then there's a bigger issue
         if (
-            /no worker found/gi.test(
+            !/no worker found/gi.test(
                 JSON.stringify(e, Object.getOwnPropertyNames(e)),
             )
         ) {
-            console.log('no worker found');
+            throw e;
         }
-        // swallow any other errors, assume the worker isn't registered
     }
-    console.log('getWorkerRes', false);
+    console.log('getWorker response', false);
 
     // register worker
     let registerWorkerRes;
@@ -127,12 +129,11 @@ async function boot() {
         registerWorkerRes = false;
     }
 
-    console.log('registerWorkerRes', registerWorkerRes);
+    console.log('registerWorker response', registerWorkerRes);
+    console.log('Shade Agent API ready on port:', PORT);
 }
 
 boot();
-
-console.log('Server listening on port: ', PORT);
 
 serve({
     fetch: app.fetch,

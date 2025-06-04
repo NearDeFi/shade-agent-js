@@ -10,7 +10,7 @@
         "build:proxy": "cd ./contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "build:sandbox": "cd ./contracts/sandbox && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "deploy:contract": "node ./scripts/deploy.js",
-        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json && cp cli/cli.js dist/cli.js && rm -rf docker-api/dist && mkdir docker-api/dist && cp -a dist/* docker-api/dist/",
+        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json && cp cli/cli.js dist/cli.js",
         "deploy": "npm publish --access public"
     },
     "devDependencies": {
@@ -24,7 +24,9 @@
         "js-sha3": "^0.9.3",
         "keccak": "^3.0.4",
         "tsup": "^8.5.0",
-        "typescript": "^5.8.3"
+        "typescript": "^5.8.3",
+        "near-api-js": "^5.0.1",
+        "near-seed-phrase": "^0.2.1"
     },
     "dependencies": {
         "near-api-js": "^5.0.1",
