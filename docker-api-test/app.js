@@ -4,7 +4,6 @@ import { Hono } from 'hono';
 import { createHash } from 'node:crypto';
 
 const PORT = 3000;
-const API_PORT = 3140;
 
 import { getWorkerAccount, signWithWorker } from './dist/index.cjs';
 

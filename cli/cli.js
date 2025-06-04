@@ -90,6 +90,7 @@ async function main() {
     }
     console.log('docker restarted');
 
+    let NEW_APP_CODEHASH;
     if (IS_SANDBOX) {
         // docker image build
 
@@ -107,7 +108,6 @@ async function main() {
         // docker hub push and get codehash
 
         console.log('docker pushing image...');
-        let NEW_APP_CODEHASH;
         try {
             const output = execSync(
                 `sudo docker push ${process.env.DOCKER_TAG}`,
@@ -265,7 +265,7 @@ async function main() {
         const appName = appNameSplit[appNameSplit.length - 1];
         try {
             execSync(
-                `phala cvms create --name ${appName} --compose ./docker-compose.yaml --env-file ./.env.development.local --teepod-id 3`,
+                `phala cvms create --name ${appName} --compose ./docker-compose.yaml --env-file ./.env.development.local`,
             );
         } catch (e) {
             console.log('Error deploying to Phala Cloud', e);

@@ -1,10 +1,9 @@
-import { execSync } from 'child_process';
-import fs from 'fs';
 import * as dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
     // will load for browser and backend
-    dotenv.config({ path: '../.env.development.local' });
+    dotenv.config({ path: './.env.development.local' });
 } else {
+    console.log('loading prod env vars');
     // load .env in production
     dotenv.config();
 }

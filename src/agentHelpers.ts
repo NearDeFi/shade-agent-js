@@ -1,4 +1,11 @@
-import 'dotenv/config';
+import * as dotenv from 'dotenv';
+if (process.env.NODE_ENV !== 'production') {
+    // will load for browser and backend
+    dotenv.config({ path: './.env.development.local' });
+} else {
+    // load .env in production
+    dotenv.config();
+}
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
 import { setKey, getImplicit, contractCall } from './nearProvider';
@@ -8,7 +15,6 @@ const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)
     ? 'shade-agent-api'
     : 'localhost';
 
-console.log(process.env.NEXT_PUBLIC_contractId);
 // if running simulator otherwise this will be undefined
 const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 
