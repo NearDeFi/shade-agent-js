@@ -246,6 +246,17 @@ export class TappdClient {
         return result;
     }
 
+    async extendRtmr3(event: string, payload: string | object): Promise<any> {
+        const payloadJson =
+            typeof payload === 'string' ? payload : JSON.stringify(payload);
+        const result = await send_rpc_request<DeriveKeyResponse>(
+            this.endpoint,
+            '/prpc/Tappd.EmitEvent',
+            JSON.stringify({ event, payload: payloadJson }),
+        );
+        return result;
+    }
+
     async deriveKey(
         path?: string,
         subject?: string,

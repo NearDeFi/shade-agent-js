@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const dir = process.cwd();
 
 import * as dotenv from 'dotenv';
@@ -12,7 +14,6 @@ if (process.env.NODE_ENV !== 'production') {
 import fs from 'fs';
 import { readFileSync, writeFileSync } from 'fs';
 import { spawn, execSync } from 'child_process';
-import readline from 'readline';
 import { parseSeedPhrase } from 'near-seed-phrase';
 import * as nearAPI from 'near-api-js';
 const {
