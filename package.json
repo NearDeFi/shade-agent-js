@@ -28,10 +28,6 @@
         "near-api-js": "^5.0.1",
         "near-seed-phrase": "^0.2.1"
     },
-    "dependencies": {
-        "near-api-js": "^5.0.1",
-        "near-seed-phrase": "^0.2.1"
-    },
     "bin": "./cli.js",
     "description": "This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/).",
     "repository": {
