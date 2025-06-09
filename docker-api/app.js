@@ -19,7 +19,7 @@ import {
     parseNearAmount,
     contractView,
     contractCall,
-} from '@neardefi/shade-agent-js';
+} from './dist/index.cjs';
 
 // TODOs - update sandbox contract to pull hashes based on comments, include comment schema in docker-compose.yaml so hashes can be extracted with splits
 

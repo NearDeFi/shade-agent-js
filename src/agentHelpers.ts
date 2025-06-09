@@ -6,7 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
     // load .env in production
     dotenv.config();
 }
-import { TappdClient } from './tappd';
+import { DstackClient } from './dstack';
 import { generateSeedPhrase } from 'near-seed-phrase';
 import { setKey, getImplicit, contractCall } from './nearProvider';
 
@@ -64,20 +64,19 @@ export async function signWithWorker(
  */
 export async function deriveWorkerAccount(hash: Buffer | undefined) {
     // use TEE entropy or fallback to js crypto randomArray
+    let client;
     if (!hash) {
         try {
             // entropy from TEE hardware
-            const client = new TappdClient(endpoint);
+            client = new DstackClient(endpoint);
             const randomString = Buffer.from(randomArray).toString('hex');
-            const keyFromTee = await client.deriveKey(
-                randomString,
-                randomString,
-            );
+            const keyFromTee = (await client.getKey(randomString, randomString))
+                .key;
             // hash of in-memory and TEE entropy
             hash = Buffer.from(
                 await crypto.subtle.digest(
                     'SHA-256',
-                    Buffer.concat([randomArray, keyFromTee.asUint8Array(32)]),
+                    Buffer.concat([randomArray, keyFromTee]),
                 ),
             );
         } catch (e) {
@@ -95,6 +94,11 @@ export async function deriveWorkerAccount(hash: Buffer | undefined) {
     // set the secretKey (inMemoryKeyStore only)
     setKey(accountId, data.secretKey);
 
+    // emit event for rtmr3
+    if (client) {
+        await client.emitEvent('worker-account-id', accountId);
+    }
+
     return accountId;
 }
 
@@ -108,17 +112,12 @@ export async function registerWorker(codehash: String | undefined) {
     let resContract;
     if (!codehash) {
         // env prod in TEE
-        const client = new TappdClient(endpoint);
-        let tcb_info = (await client.getInfo()).tcb_info;
-
-        // parse tcb_info
-        if (typeof tcb_info !== 'string') {
-            tcb_info = JSON.stringify(tcb_info);
-        }
+        const client = new DstackClient(endpoint);
+        const tcb_info = (await client.info()).tcb_info;
 
         // get TDX quote
         const randomNumString = Math.random().toString();
-        const ra = await client.tdxQuote(randomNumString);
+        const ra = await client.getQuote(randomNumString);
         const quote_hex = ra.quote.replace(/^0x/, '');
 
         // get quote collateral
@@ -142,7 +141,7 @@ export async function registerWorker(codehash: String | undefined) {
                 quote_hex,
                 collateral,
                 checksum,
-                tcb_info,
+                tcb_info: JSON.stringify(tcb_info),
             },
         });
     } else {

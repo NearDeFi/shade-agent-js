@@ -4,28 +4,55 @@ import http from 'http';
 import https from 'https';
 import { URL } from 'url';
 
-export interface DeriveKeyResponse {
+export interface GetTlsKeyResponse {
     key: string;
     certificate_chain: string[];
 
     asUint8Array: (max_length?: number) => Uint8Array;
 }
 
-export type Hex = `0x${string}`;
+export interface GetKeyResponse {
+    key: Uint8Array;
+    signature_chain: Uint8Array[];
+}
 
-export type TdxQuoteHashAlgorithms =
-    | 'sha256'
-    | 'sha384'
-    | 'sha512'
-    | 'sha3-256'
-    | 'sha3-384'
-    | 'sha3-512'
-    | 'keccak256'
-    | 'keccak384'
-    | 'keccak512'
-    | 'raw';
+export type Hex = `${string}`;
 
-export interface TdxQuoteResponse {
+export interface EventLog {
+    imr: number;
+    event_type: number;
+    digest: string;
+    event: string;
+    event_payload: string;
+}
+
+export interface TcbInfo {
+    mrtd: string;
+    rootfs_hash: string;
+    rtmr0: string;
+    rtmr1: string;
+    rtmr2: string;
+    rtmr3: string;
+    event_log: EventLog[];
+}
+
+export interface InfoResponse {
+    app_id: string;
+    instance_id: string;
+    app_cert: string;
+    tcb_info: TcbInfo;
+    app_name: string;
+    public_logs: boolean;
+    public_sysinfo: boolean;
+    device_id: string;
+    mr_aggregated: string;
+    os_image_hash: string;
+    mr_key_provider: string;
+    key_provider_info: string;
+    compose_hash: string;
+}
+
+export interface GetQuoteResponse {
     quote: Hex;
     event_log: string;
 
@@ -79,11 +106,6 @@ function replay_rtmr(history: string[]): string {
             .digest() as Buffer<ArrayBuffer>;
     }
     return mr.toString('hex');
-}
-
-interface EventLog {
-    imr: number;
-    digest: string;
 }
 
 function reply_rtmrs(event_log: EventLog[]): Record<number, string> {
@@ -223,12 +245,21 @@ export function send_rpc_request<T = any>(
     });
 }
 
-export class TappdClient {
+export interface TlsKeyOptions {
+    path?: string;
+    subject?: string;
+    altNames?: string[];
+    usageRaTls?: boolean;
+    usageServerAuth?: boolean;
+    usageClientAuth?: boolean;
+}
+
+export class DstackClient {
     private endpoint: string;
 
-    constructor(endpoint: string = '/var/run/tappd.sock') {
+    constructor(endpoint: string = '/var/run/dstack.sock') {
         if (process.env.DSTACK_SIMULATOR_ENDPOINT) {
-            console.debug(
+            console.warn(
                 `Using simulator endpoint: ${process.env.DSTACK_SIMULATOR_ENDPOINT}`,
             );
             endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
@@ -236,43 +267,45 @@ export class TappdClient {
         this.endpoint = endpoint;
     }
 
-    async getInfo(): Promise<any> {
-        const result = await send_rpc_request<any>(
-            this.endpoint,
-            '/prpc/Tappd.Info',
-            '',
-        );
-
-        return result;
+    async getKey(path: string, purpose: string = ''): Promise<GetKeyResponse> {
+        const payload = JSON.stringify({
+            path: path,
+            purpose: purpose,
+        });
+        const result = await send_rpc_request<{
+            key: string;
+            signature_chain: string[];
+        }>(this.endpoint, '/GetKey', payload);
+        return Object.freeze({
+            key: new Uint8Array(Buffer.from(result.key, 'hex')),
+            signature_chain: result.signature_chain.map(
+                (sig) => new Uint8Array(Buffer.from(sig, 'hex')),
+            ),
+        });
     }
 
-    async extendRtmr3(event: string, payload: string | object): Promise<any> {
-        const payloadJson =
-            typeof payload === 'string' ? payload : JSON.stringify(payload);
-        const result = await send_rpc_request<DeriveKeyResponse>(
-            this.endpoint,
-            '/prpc/Tappd.EmitEvent',
-            JSON.stringify({ event, payload: payloadJson }),
-        );
-        return result;
-    }
+    async getTlsKey(options: TlsKeyOptions = {}): Promise<GetTlsKeyResponse> {
+        const {
+            subject = '',
+            altNames = [],
+            usageRaTls = false,
+            usageServerAuth = true,
+            usageClientAuth = false,
+        } = options;
 
-    async deriveKey(
-        path?: string,
-        subject?: string,
-        alt_names?: string[],
-    ): Promise<DeriveKeyResponse> {
         let raw: Record<string, any> = {
-            path: path || '',
-            subject: subject || path || '',
+            subject,
+            usage_ra_tls: usageRaTls,
+            usage_server_auth: usageServerAuth,
+            usage_client_auth: usageClientAuth,
         };
-        if (alt_names && alt_names.length) {
-            raw['alt_names'] = alt_names;
+        if (altNames && altNames.length) {
+            raw['alt_names'] = altNames;
         }
         const payload = JSON.stringify(raw);
-        const result = await send_rpc_request<DeriveKeyResponse>(
+        const result = await send_rpc_request<GetTlsKeyResponse>(
             this.endpoint,
-            '/prpc/Tappd.DeriveKey',
+            '/GetTlsKey',
             payload,
         );
         Object.defineProperty(result, 'asUint8Array', {
@@ -284,25 +317,19 @@ export class TappdClient {
         return Object.freeze(result);
     }
 
-    async tdxQuote(
+    async getQuote(
         report_data: string | Buffer | Uint8Array,
-        hash_algorithm?: TdxQuoteHashAlgorithms,
-    ): Promise<TdxQuoteResponse> {
+    ): Promise<GetQuoteResponse> {
         let hex = to_hex(report_data);
-        if (hash_algorithm === 'raw') {
-            if (hex.length > 128) {
-                throw new Error(
-                    `Report data is too large, it should less then 64 bytes when hash_algorithm is raw.`,
-                );
-            }
-            if (hex.length < 128) {
-                hex = hex.padStart(128, '0');
-            }
+        if (hex.length > 128) {
+            throw new Error(
+                `Report data is too large, it should be less than 64 bytes.`,
+            );
         }
-        const payload = JSON.stringify({ report_data: hex, hash_algorithm });
-        const result = await send_rpc_request<TdxQuoteResponse>(
+        const payload = JSON.stringify({ report_data: hex });
+        const result = await send_rpc_request<GetQuoteResponse>(
             this.endpoint,
-            '/prpc/Tappd.TdxQuote',
+            '/GetQuote',
             payload,
         );
         if ('error' in result) {
@@ -316,5 +343,42 @@ export class TappdClient {
             configurable: false,
         });
         return Object.freeze(result);
+    }
+
+    async info(): Promise<InfoResponse> {
+        const result = await send_rpc_request<
+            Omit<InfoResponse, 'tcb_info'> & { tcb_info: string }
+        >(this.endpoint, '/Info', '{}');
+        return Object.freeze({
+            ...result,
+            tcb_info: JSON.parse(result.tcb_info) as TcbInfo,
+        });
+    }
+
+    /**
+     * Emit an event. This extends the event to RTMR3 on TDX platform.
+     *
+     * Requires Dstack OS 0.5.0 or later.
+     *
+     * @param event The event name
+     * @param payload The event data as string or Buffer or Uint8Array
+     */
+    async emitEvent(
+        event: string,
+        payload: string | Buffer | Uint8Array,
+    ): Promise<void> {
+        if (!event) {
+            throw new Error('Event name cannot be empty');
+        }
+
+        const hexPayload = to_hex(payload);
+        await send_rpc_request(
+            this.endpoint,
+            '/EmitEvent',
+            JSON.stringify({
+                event: event,
+                payload: hexPayload,
+            }),
+        );
     }
 }

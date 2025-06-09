@@ -1,4 +1,4 @@
-export { TappdClient } from './tappd';
+export { DstackClient } from './dstack';
 export {
     getImplicit,
     setKey,

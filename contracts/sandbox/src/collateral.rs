@@ -31,10 +31,25 @@ pub fn get_collateral(raw_quote_collateral: String) -> QuoteCollateralV3 {
     }
 }
 
-pub fn verify_codehash(raw_tcb_info: String, rtmr3: String) -> (String, String) {
+pub fn verify_agent(raw_tcb_info: String, rtmr3: String) -> (String, String) {
     let tcb_info: Value =
         serde_json::from_str(&raw_tcb_info).expect("TCB Info should be valid JSON");
     let event_log = tcb_info["event_log"].as_array().unwrap();
+
+    // get worker-account-id from event_log and compare with env::predecessor of calling agent
+    let expected_worker_account_id = event_log
+        .iter()
+        .filter(|e| e["event"].as_str().unwrap() == "worker-account-id")
+        .next()
+        .unwrap()["event_payload"]
+        .as_str()
+        .unwrap();
+
+    require!(
+        env::predecessor_account_id() == expected_worker_account_id,
+        "predecessor_account_id != event worker-account-id"
+    );
+
     // get compose hash from events
     let expected_compose_hash = event_log
         .iter()
@@ -50,9 +65,15 @@ pub fn verify_codehash(raw_tcb_info: String, rtmr3: String) -> (String, String) 
     let replayed_compose_hash: String = replay_app_compose(app_compose);
 
     // compose hash match expected
-    require!(replayed_compose_hash == expected_compose_hash);
+    require!(
+        replayed_compose_hash == expected_compose_hash,
+        "replayed_compose_hash != expected_compose_hash"
+    );
     // event with compose hash matches report rtmr3
-    require!(replayed_rtmr3 == rtmr3);
+    require!(
+        replayed_rtmr3 == rtmr3,
+        "replayed_rtmr3 != rtmr3 from attestation report"
+    );
 
     // extract the codehashes of the shade-agent-api-image and the shade-agent-app-image
     let mut app_compose_string = String::from(app_compose);
