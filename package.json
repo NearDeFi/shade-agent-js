@@ -1,7 +1,7 @@
 {
     "type": "module",
     "name": "@neardefi/shade-agent-js",
-    "version": "0.1.4",
+    "version": "0.1.6",
     "main": "index.cjs",
     "types": "dist/index.d.ts",
     "author": "Matt Lockyer <github.com/mattlockyer>",
@@ -10,7 +10,8 @@
         "build:proxy": "cd ./contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "build:sandbox": "cd ./contracts/sandbox && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "deploy:contract": "node ./scripts/deploy.js",
-        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json && cp cli/cli.js dist/cli.js",
+        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json",
+        "build:debug": "tsup src/* --format cjs --dts && cp package.json dist/package.json && rm -rf docker-api/dist && mkdir docker-api/dist && cp dist/* docker-api/dist",
         "deploy": "npm publish --access public"
     },
     "devDependencies": {

@@ -69,6 +69,10 @@ export const setKey = (accountId, secretKey) => {
     if (!accountId || !secretKey) {
         return console.log('ERROR: setKey missing args');
     }
+    // user passed in a seed phrase
+    if (secretKey.indexOf(' ') > -1) {
+        secretKey = parseSeedPhrase(secretKey).secretKey;
+    }
     _accountId = accountId;
     const keyPair = KeyPair.fromString(secretKey);
     // set in-memory keystore only

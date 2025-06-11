@@ -12,6 +12,7 @@ import { cors } from 'hono/cors';
 import { Hono } from 'hono';
 
 import {
+    setKey,
     deriveWorkerAccount,
     getAccount,
     getBalance,
@@ -28,6 +29,8 @@ import {
 // Another option is to include near-cli-rs test this tomorrow
 
 // config
+const accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');
+const seedPhrase = process.env.NEAR_SEED_PHRASE.replaceAll('"', '');
 const contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
 const IS_SANDBOX = /sandbox/gim.test(contractId);
 const PORT = process.env.SHADE_AGENT_PORT || 3140;
@@ -42,6 +45,12 @@ app.use('/*', cors());
 
 app.get('/api/address', async (c) => {
     return c.json({ workerAccountId });
+});
+
+app.get('/api/fund-worker/:amount', async (c) => {
+    const account = await getAccount();
+    const res = await account.sendMoney(workerAccountId, parseNearAmount(c.req.param('amount')));
+    return c.json(res);
 });
 
 app.post('/api/sign', async (c) => {
@@ -74,12 +83,12 @@ app.get('/api/test-sign', async (c) => {
 
 async function boot() {
     // get account before switching to workerAccountId
-    const account = await getAccount();
-    const entropy = process.env.ENTROPY;
+    const account = await getAccount(accountId);
+    const entropy = process.env.FIXED_WORKER_ACCOUNT && process.env.FIXED_WORKER_ACCOUNT === 'true';
     // get new ephemeral (unless entropy was provided) worker account
     workerAccountId = await deriveWorkerAccount(
         entropy
-            ? (await createHash('sha256').update(Buffer.from(entropy))).digest()
+            ? (await createHash('sha256').update(Buffer.from([accountId]))).digest()
             : undefined,
     );
     console.log('worker agent NEAR account ID:', workerAccountId);
@@ -90,6 +99,8 @@ async function boot() {
     if (BigInt(balance.available) < BigInt(parseNearAmount('0.25'))) {
         const diff = BigInt(parseNearAmount('0.3')) - BigInt(balance.available);
         console.log('funding', workerAccountId, diff);
+        // just to be sure we're using the funding account latest details
+        setKey(accountId, seedPhrase);
         await account.sendMoney(workerAccountId, diff);
     }
 

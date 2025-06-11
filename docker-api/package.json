@@ -6,16 +6,16 @@
         "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local --teepod-id 6",
         "deploy:global": "node ../scripts/deploy-global.js",
         "docker:script": "node ../scripts/docker.js",
-        "docker:test": "sudo docker build -t myapp . && sudo docker run -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
+        "docker:test": "sudo docker build --platform linux/amd64 -t myapp . && sudo docker run --platform linux/amd64 -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
         "docker:prune": "sudo docker system prune",
         "docker:restart": "sudo systemctl restart docker",
-        "docker:image": "sudo docker build --no-cache -t mattdlockyer/shade-agent-api:latest .",
+        "docker:image": "sudo docker build --platform linux/amd64 --no-cache -t mattdlockyer/shade-agent-api:latest .",
         "docker:push": "sudo docker push mattdlockyer/shade-agent-api",
         "start": "yarn node app.js"
     },
     "dependencies": {
         "@hono/node-server": "^1.14.2",
-        "@neardefi/shade-agent-js": "^0.1.4",
+        "@neardefi/shade-agent-js": "^0.1.6",
         "dotenv": "^16.5.0",
         "hono": "^4.7.10"
     }
