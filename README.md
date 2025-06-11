@@ -28,10 +28,10 @@ TWITTER_BEARER_TOKEN=""
 Then you can import and use the twitter client using:
 
 ```js
-import { SearchMode, twitter } from '@neardefi/shade-agent-js';
+import { SearchMode, twitter } from "@neardefi/shade-agent-js";
 
 // Search for recent tweets
-const tweets = scraper.searchTweets('#nodejs', 20, SearchMode.Latest);
+const tweets = scraper.searchTweets("#nodejs", 20, SearchMode.Latest);
 ```
 
 ## API
@@ -46,9 +46,9 @@ It returns the implicit accountId.
 
 All subsequent contractCalls will be made from this account (unless otherwise specified).
 
-### registerWorker() -> success: bool
+### registerAgent() -> success: bool
 
-This method gathers all the data from the TEE and calls the Shade Agent Smart contract `registerWorker` method.
+This method gathers all the data from the TEE and calls the Shade Agent Smart contract `registerAgent` method.
 
 Once a shade agent is registered it can call any contract methods that are allowed by it's docker image codehash.
 

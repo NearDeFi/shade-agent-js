@@ -26,7 +26,7 @@ crypto.getRandomValues(randomArray);
  * Gets the worker ephemeral account from the shade-agent-js api docker app
  * TODO error handling and return type checking
  */
-export async function getWorkerAccount(): Promise<any> {
+export async function getAgentAccount(): Promise<any> {
     console.log(`http://${API_PATH}:${API_PORT}/api/address`);
     const res = await fetch(`http://${API_PATH}:${API_PORT}/api/address`).then(
         (r) => r.json(),
@@ -43,7 +43,7 @@ export async function getWorkerAccount(): Promise<any> {
  *
  * TODO error handling and return type checking
  */
-export async function signWithWorker(
+export async function signWithAgent(
     path: String,
     payload: Array<Number>,
 ): Promise<any> {
@@ -62,7 +62,7 @@ export async function signWithWorker(
  * @param {Buffer | undefined} hash - User provided hash for seed phrase generation. When undefined, it will try to use TEE hardware entropy or JS crypto.
  * @returns {Promise<string>} The derived account ID
  */
-export async function deriveWorkerAccount(hash: Buffer | undefined) {
+export async function deriveAgentAccount(hash: Buffer | undefined) {
     // use TEE entropy or fallback to js crypto randomArray
     if (!hash) {
         try {
@@ -103,7 +103,7 @@ export async function deriveWorkerAccount(hash: Buffer | undefined) {
  * @param {String | undefined} codehash - User provided codehash for proxy contract, running locally and NOT in a TEE
  * @returns {Promise<boolean>} Result of the registration
  */
-export async function registerWorker(codehash: String | undefined) {
+export async function registerAgent(codehash: String | undefined) {
     // get tcb_info from tappd if we are running in a TEE, otherwise we're running locally so register worker with codehash "proxy"
     let resContract;
     if (!codehash) {

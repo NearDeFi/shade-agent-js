@@ -13,13 +13,13 @@ import { Hono } from 'hono';
 
 import {
     setKey,
-    deriveWorkerAccount,
     getAccount,
     getBalance,
-    registerWorker,
+    registerAgent,
     parseNearAmount,
     contractView,
     contractCall,
+    deriveAgentAccount,
 } from '@neardefi/shade-agent-js';
 
 // TODOs - update sandbox contract to pull hashes based on comments, include comment schema in docker-compose.yaml so hashes can be extracted with splits
@@ -84,9 +84,9 @@ app.get('/api/test-sign', async (c) => {
 async function boot() {
     // get account before switching to workerAccountId
     const account = await getAccount(accountId);
-    const entropy = process.env.FIXED_WORKER_ACCOUNT && process.env.FIXED_WORKER_ACCOUNT === 'true';
+    const entropy = /proxy/gim.test(process.env.NEXT_PUBLIC_contractId) || (process.env.FIXED_WORKER_ACCOUNT && process.env.FIXED_WORKER_ACCOUNT === 'true');
     // get new ephemeral (unless entropy was provided) worker account
-    workerAccountId = await deriveWorkerAccount(
+    workerAccountId = await deriveAgentAccount(
         entropy
             ? (await createHash('sha256').update(Buffer.from([accountId]))).digest()
             : undefined,
@@ -132,15 +132,15 @@ async function boot() {
     console.log('getWorker response', false);
 
     // register worker
-    let registerWorkerRes;
+    let registerAgentRes;
     try {
-        registerWorkerRes = await registerWorker(!IS_SANDBOX && API_CODEHASH);
+        registerAgentRes = await registerAgent(!IS_SANDBOX && API_CODEHASH);
     } catch (e) {
-        console.log('registerWorker Error:', e);
-        registerWorkerRes = false;
+        console.log('registerAgent Error:', e);
+        registerAgentRes = false;
     }
 
-    console.log('registerWorker response', registerWorkerRes);
+    console.log('registerAgent response', registerAgentRes);
     console.log('Shade Agent API ready on port:', PORT);
 }
 
