@@ -108,6 +108,12 @@ export const getImplicit = (pubKeyStr) =>
 export const getAccount = (id = _accountId) => new Account(connection, id);
 
 /**
+ * Returns the current account ID (typically the agent account after setKey has been called in deriveAgentAccount)
+ * @returns {String} Agent Account ID
+ */
+export const getCurrentAccountId = () => _accountId;
+
+/**
  * Gets the balance of a NEAR account
  * @param {string} accountId - NEAR account ID
  * @returns {Promise<{available: string}>} Account balance

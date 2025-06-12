@@ -99,8 +99,6 @@ async function boot() {
     if (BigInt(balance.available) < BigInt(parseNearAmount('0.25'))) {
         const diff = BigInt(parseNearAmount('0.3')) - BigInt(balance.available);
         console.log('funding', workerAccountId, diff);
-        // just to be sure we're using the funding account latest details
-        setKey(accountId, seedPhrase);
         await account.sendMoney(workerAccountId, diff);
     }
 

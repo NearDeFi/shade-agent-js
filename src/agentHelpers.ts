@@ -8,7 +8,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
-import { setKey, getImplicit, contractCall } from './nearProvider';
+import { setKey, getImplicit, contractCall, getCurrentAccountId } from './nearProvider';
 
 const API_PORT = process.env.API_PORT || 3140;
 const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)
@@ -117,8 +117,8 @@ export async function registerAgent(codehash: String | undefined) {
         }
 
         // get TDX quote
-        const randomNumString = Math.random().toString();
-        const ra = await client.tdxQuote(randomNumString);
+        const accountId = getCurrentAccountId();
+        const ra = await client.tdxQuote(accountId, 'raw');
         const quote_hex = ra.quote.replace(/^0x/, '');
 
         // get quote collateral
