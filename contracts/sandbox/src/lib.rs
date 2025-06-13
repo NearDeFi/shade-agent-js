@@ -72,18 +72,18 @@ impl Contract {
         let now = block_timestamp() / 1000000000;
         let result = verify::verify(&quote, &collateral, now).expect("report is not verified");
         let report = result.report.as_td10().unwrap();
+        let report_data = format!("{}", String::from_utf8_lossy(&report.report_data));
+
+        // verify the predecessor matches the report data
+        require!(
+            env::predecessor_account_id() == report_data,
+            format!("predecessor_account_id != report_data: {}", report_data)
+        );
+
         let rtmr3 = encode(report.rt_mr3.to_vec());
         let (shade_agent_api_image, shade_agent_app_image) =
             collateral::verify_codehash(tcb_info, rtmr3);
 
-        // verify the predecessor matches the report data
-        require!(
-            encode(report.report_data) == env::predecessor_account_id(),
-            format!(
-                "predecessor_account_id != report_data: {}",
-                encode(report.report_data)
-            )
-        );
         // verify the code hashes are approved
         require!(self.approved_codehashes.contains(&shade_agent_api_image));
         require!(self.approved_codehashes.contains(&shade_agent_app_image));
