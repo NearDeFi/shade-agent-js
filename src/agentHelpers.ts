@@ -8,7 +8,12 @@ if (process.env.NODE_ENV !== 'production') {
 }
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
-import { setKey, getImplicit, contractCall, getCurrentAccountId } from './nearProvider';
+import {
+    setKey,
+    getImplicit,
+    contractCall,
+    getCurrentAccountId,
+} from './nearProvider';
 
 const API_PORT = process.env.API_PORT || 3140;
 const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)

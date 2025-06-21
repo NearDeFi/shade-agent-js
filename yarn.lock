@@ -405,7 +405,7 @@ __metadata:
     tsup: "npm:^8.5.0"
     typescript: "npm:^5.8.3"
   bin:
-    shade-agent-js: ./cli/cli.js
+    shade-agent-js: ./cli.js
   languageName: unknown
   linkType: soft
 
