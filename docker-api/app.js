@@ -12,7 +12,6 @@ import { cors } from 'hono/cors';
 import { Hono } from 'hono';
 
 import {
-    setKey,
     getAccount,
     getBalance,
     registerAgent,
@@ -20,7 +19,8 @@ import {
     contractView,
     contractCall,
     deriveAgentAccount,
-} from '@neardefi/shade-agent-js';
+    // } from '@neardefi/shade-agent-js';
+} from './dist/index.cjs';
 
 // TODOs - update sandbox contract to pull hashes based on comments, include comment schema in docker-compose.yaml so hashes can be extracted with splits
 
@@ -30,26 +30,28 @@ import {
 
 // config
 const accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');
-const seedPhrase = process.env.NEAR_SEED_PHRASE.replaceAll('"', '');
 const contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
 const IS_SANDBOX = /sandbox/gim.test(contractId);
 const PORT = process.env.SHADE_AGENT_PORT || 3140;
 const API_CODEHASH = process.env.API_CODEHASH.replaceAll('"', '');
 const APP_CODEHASH = process.env.APP_CODEHASH.replaceAll('"', '');
 
-let workerAccountId;
+let agentAccountId;
 
 const app = new Hono();
 
 app.use('/*', cors());
 
 app.get('/api/address', async (c) => {
-    return c.json({ workerAccountId });
+    return c.json({ agentAccountId });
 });
 
 app.get('/api/fund-worker/:amount', async (c) => {
     const account = await getAccount();
-    const res = await account.sendMoney(workerAccountId, parseNearAmount(c.req.param('amount')));
+    const res = await account.transfer({
+        receiverId: agentAccountId,
+        amount: parseNearAmount(c.req.param('amount')),
+    });
     return c.json(res);
 });
 
@@ -82,24 +84,32 @@ app.get('/api/test-sign', async (c) => {
 });
 
 async function boot() {
-    // get account before switching to workerAccountId
+    // get account before switching to agentAccountId
     const account = await getAccount(accountId);
-    const entropy = /proxy/gim.test(process.env.NEXT_PUBLIC_contractId) || (process.env.FIXED_WORKER_ACCOUNT && process.env.FIXED_WORKER_ACCOUNT === 'true');
+    const entropy =
+        /proxy/gim.test(process.env.NEXT_PUBLIC_contractId) ||
+        (process.env.FIXED_WORKER_ACCOUNT &&
+            process.env.FIXED_WORKER_ACCOUNT === 'true');
     // get new ephemeral (unless entropy was provided) worker account
-    workerAccountId = await deriveAgentAccount(
+    agentAccountId = await deriveAgentAccount(
         entropy
-            ? (await createHash('sha256').update(Buffer.from([accountId]))).digest()
+            ? (
+                  await createHash('sha256').update(Buffer.from([accountId]))
+              ).digest()
             : undefined,
     );
-    console.log('worker agent NEAR account ID:', workerAccountId);
-    // fund workerAccountId
-    const balance = await getBalance(workerAccountId);
+    console.log('worker agent NEAR account ID:', agentAccountId);
+    // fund agentAccountId
+    const balance = await getBalance(agentAccountId);
 
     // console.log('balance', balance.available);
-    if (BigInt(balance.available) < BigInt(parseNearAmount('0.25'))) {
-        const diff = BigInt(parseNearAmount('0.3')) - BigInt(balance.available);
-        console.log('funding', workerAccountId, diff);
-        await account.sendMoney(workerAccountId, diff);
+    if (balance < BigInt(parseNearAmount('0.25'))) {
+        const amount = BigInt(parseNearAmount('0.3')) - BigInt(balance);
+        console.log('funding', agentAccountId, diff);
+        await account.transfer({
+            receiverId: receiverId,
+            amount,
+        });
     }
 
     // check if worker is registered
@@ -107,7 +117,7 @@ async function boot() {
         const getWorkerRes = await contractView({
             methodName: 'get_worker',
             args: {
-                account_id: workerAccountId,
+                account_id: agentAccountId,
             },
         });
         if (

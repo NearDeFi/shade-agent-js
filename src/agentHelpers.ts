@@ -32,11 +32,9 @@ crypto.getRandomValues(randomArray);
  * TODO error handling and return type checking
  */
 export async function getAgentAccount(): Promise<any> {
-    console.log(`http://${API_PATH}:${API_PORT}/api/address`);
     const res = await fetch(`http://${API_PATH}:${API_PORT}/api/address`).then(
         (r) => r.json(),
     );
-
     return res;
 }
 

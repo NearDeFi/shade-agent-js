@@ -3,17 +3,13 @@ export {
     getImplicit,
     getCurrentAccountId,
     setKey,
-    getDevAccountKeyPair,
     getAccount,
     getBalance,
     contractView,
     contractCall,
     networkId,
-} from './nearProvider';
-export {
     parseNearAmount,
-    formatNearAmount,
-} from 'near-api-js/lib/utils/format';
+} from './nearProvider';
 export {
     getAgentAccount,
     signWithAgent,
@@ -21,4 +17,3 @@ export {
     registerAgent,
 } from './agentHelpers';
 export { generateAddress } from './kdf';
-export { SearchMode, twitter } from './twitter';
