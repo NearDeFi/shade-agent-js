@@ -5,9 +5,7 @@ use near_sdk::{
     AccountId, Gas, NearToken, PanicOnDefault, Promise,
 };
 
-mod ecdsa;
-mod external;
-mod utils;
+mod chainsig;
 
 #[near(serializers = [json, borsh])]
 #[derive(Clone)]
@@ -51,7 +49,7 @@ impl Contract {
         require!(self.approved_codehashes.contains(&worker.codehash));
     }
 
-    pub fn register_worker(&mut self, codehash: String) -> bool {
+    pub fn register_agent(&mut self, codehash: String) -> bool {
         // THIS IS A LOCAL DEV CONTRACT, SKIPPING ATTESTATION CHECKS
 
         let predecessor = env::predecessor_account_id();
@@ -61,10 +59,10 @@ impl Contract {
         true
     }
 
-    pub fn get_signature(&mut self, payload: Vec<u8>, path: String) -> Promise {
-        self.require_approved_codehash();
+    pub fn sign_with_agent(&mut self, path: String, payload: String, key_type: String) -> Promise {
+        // self.require_approved_codehash();
 
-        ecdsa::get_sig(payload, path, 0)
+        chainsig::request_sign(path, payload, key_type)
     }
 
     // views

@@ -10,10 +10,6 @@ export {
     networkId,
     parseNearAmount,
 } from './nearProvider';
-export {
-    getAgentAccount,
-    signWithAgent,
-    deriveAgentAccount,
-    registerAgent,
-} from './agentHelpers';
+export { deriveAgentAccount, registerAgent } from './agentHelpers';
+export { getAgentAccount, signWithAgent } from './api';
 export { generateAddress } from './kdf';

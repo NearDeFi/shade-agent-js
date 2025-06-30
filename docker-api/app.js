@@ -58,7 +58,7 @@ app.get('/api/fund-worker/:amount', async (c) => {
 app.post('/api/sign', async (c) => {
     const args = await c.req.json();
     const res = await contractCall({
-        methodName: 'get_signature',
+        methodName: 'sign_with_agent',
         args,
     });
 

@@ -9,10 +9,10 @@
     "scripts": {
         "build:proxy": "cd ./contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "build:sandbox": "cd ./contracts/sandbox && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
-        "deploy:contract": "node ./scripts/deploy.js",
         "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json",
-        "build:debug": "tsup src/* --format cjs --dts && cp package.json dist/package.json && rm -rf docker-api/dist && mkdir docker-api/dist && cp dist/* docker-api/dist",
-        "deploy": "npm publish --access public"
+        "build:test": "tsup src/* --format cjs --dts && cp package.json dist/package.json && rm -rf docker-api/dist && mkdir docker-api/dist && cp dist/* docker-api/dist",
+        "deploy": "npm publish --access public",
+        "proxy:test": "yarn build:test && yarn build:proxy && node ./scripts/deploy.js"
     },
     "devDependencies": {
         "@near-js/accounts": "^2.1.0",
