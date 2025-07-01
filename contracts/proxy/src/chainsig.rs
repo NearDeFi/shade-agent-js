@@ -21,8 +21,8 @@ trait MPCContract {
     fn sign(&self, request: SignRequest);
 }
 
-const GAS: Gas = Gas::from_tgas(50);
-const ATTACHED_DEPOSIT: NearToken = NearToken::from_yoctonear(500000000000000000000000);
+const GAS: Gas = Gas::from_tgas(10);
+const ATTACHED_DEPOSIT: NearToken = NearToken::from_yoctonear(1);
 
 pub fn request_sign(path: String, payload: String, key_type: String) -> Promise {
     let (payload_v2, domain_id) = match key_type.as_str() {
