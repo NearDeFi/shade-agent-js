@@ -3,7 +3,7 @@ import fs from 'fs';
 import * as dotenv from 'dotenv';
 if (process.env.NODE_ENV !== 'production') {
     // will load for browser and backend
-    dotenv.config({ path: '../docker-api-test/.env.development.local' });
+    dotenv.config({ path: '../docker-api/.env.development.local' });
 } else {
     // load .env in production
     dotenv.config();
@@ -21,22 +21,23 @@ const {
     },
 } = nearAPI;
 
+// local vars for module
+const _contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
+export const contractId = _contractId;
+
+const IS_SANDBOX = /sandbox/gim.test(contractId);
 // deploy the contract bytes NOT the global contract if this is set... to anything
 const DEPLOY_BYTES = process.env.DEPLOY_BYTES;
 // default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
 const API_CODEHASH = process.env.API_CODEHASH || 'api';
 const APP_CODEHASH = process.env.APP_CODEHASH || 'proxy';
-const GLOBAL_CONTRACT_HASH =
-    APP_CODEHASH === 'proxy'
-        ? '2pSLLgLnAM9PYD7Rj6SpdK9tJRz48GQ7GrnAXK6tmm8u'
-        : '7YNvcAExky2iRBxJa5wEPofG9ddgmRLDCGHGFAuvBbL2';
+const GLOBAL_CONTRACT_HASH = IS_SANDBOX
+    ? '7YNvcAExky2iRBxJa5wEPofG9ddgmRLDCGHGFAuvBbL2'
+    : '2pSLLgLnAM9PYD7Rj6SpdK9tJRz48GQ7GrnAXK6tmm8u';
 const HD_PATH = `"m/44'/397'/0'"`;
 const FUNDING_AMOUNT = parseNearAmount('1');
 const GAS = BigInt('300000000000000');
 
-// local vars for module
-const _contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
-export const contractId = _contractId;
 export const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
 // setup keystore, set funding account and key
 let _accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');

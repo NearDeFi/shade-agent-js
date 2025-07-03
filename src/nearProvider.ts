@@ -8,55 +8,38 @@ if (process.env.NODE_ENV !== 'production') {
     dotenv.config();
 }
 import { parseSeedPhrase } from 'near-seed-phrase';
-import * as nearAPI from 'near-api-js';
-const {
-    Near,
-    Account,
-    KeyPair,
-    keyStores,
-    utils: {
-        PublicKey,
-        format: { parseNearAmount },
-    },
-} = nearAPI;
 
+// new imports
+import { KeyPairSigner } from '@near-js/signers';
+import { JsonRpcProvider } from '@near-js/providers';
+import { Account } from '@near-js/accounts';
+import { NEAR } from '@near-js/tokens';
+import { KeyPair, KeyPairString, PublicKey } from '@near-js/crypto';
+
+export const parseNearAmount = (amt) => NEAR.toUnits(amt);
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const GAS = BigInt('300000000000000');
 
 // local vars for module
-const _contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
+const _contractId = process.env.NEXT_PUBLIC_contractId?.replaceAll('"', '');
 export const contractId = _contractId;
 export const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
 // setup keystore, set funding account and key
-let _accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');
+let _accountId = process.env.NEAR_ACCOUNT_ID?.replaceAll('"', '');
 // console.log('accountId, contractId', _accountId, _contractId);
 const { secretKey } = parseSeedPhrase(
-    process.env.NEAR_SEED_PHRASE.replaceAll('"', ''),
+    process.env.NEAR_SEED_PHRASE?.replaceAll('"', ''),
 );
-const keyStore = new keyStores.InMemoryKeyStore();
-const keyPair = KeyPair.fromString(secretKey);
-keyStore.setKey(networkId, _accountId, keyPair);
-keyStore.setKey(networkId, _contractId, keyPair);
 
-const config =
-    networkId === 'testnet'
-        ? {
-              networkId,
-              keyStore,
-              nodeUrl: 'https://rpc.testnet.near.org',
-              walletUrl: 'https://testnet.mynearwallet.com/',
-              explorerUrl: 'https://testnet.nearblocks.io',
-          }
-        : {
-              networkId,
-              keyStore,
-              nodeUrl: 'https://rpc.near.org',
-              walletUrl: 'https://mynearwallet.com/',
-              explorerUrl: 'https://nearblocks.io',
-          };
-const near = new Near(config);
-const { connection } = near;
-const { provider } = connection;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const keyPair = KeyPair.fromString(secretKey as KeyPairString);
+let signer = new KeyPairSigner(keyPair);
+const provider = new JsonRpcProvider({
+    url:
+        networkId === 'testnet'
+            ? 'https://test.rpc.fastnear.com'
+            : 'https://free.rpc.fastnear.com',
+});
 
 // helpers
 
@@ -77,19 +60,7 @@ export const setKey = (accountId, secretKey) => {
     const keyPair = KeyPair.fromString(secretKey);
     // set in-memory keystore only
     // console.log('setKey', networkId, accountId, keyPair);
-    keyStore.setKey(networkId, accountId, keyPair);
-};
-
-/**
- * Gets the development account's key pair from environment variables
- * @returns {KeyPair} The development account's key pair
- */
-export const getDevAccountKeyPair = () => {
-    // .env.development.local - for tests expose keyPair and use for contract account (sub account of dev account)
-    // process.env.NEXT_PUBLIC_secretKey not set in production
-    const keyPair = KeyPair.fromString(process.env.NEXT_PUBLIC_secretKey);
-    keyStore.setKey(networkId, contractId, keyPair);
-    return keyPair;
+    signer = new KeyPairSigner(keyPair);
 };
 
 /**
@@ -105,7 +76,8 @@ export const getImplicit = (pubKeyStr) =>
  * @param {string} [id=_accountId] - NEAR account ID
  * @returns {Account} NEAR Account instance
  */
-export const getAccount = (id = _accountId) => new Account(connection, id);
+export const getAccount = (id = _accountId) =>
+    new Account(id, provider, signer);
 
 /**
  * Returns the current account ID (typically the agent account after setKey has been called in deriveAgentAccount)
@@ -119,10 +91,10 @@ export const getCurrentAccountId = () => _accountId;
  * @returns {Promise<{available: string}>} Account balance
  */
 export const getBalance = async (accountId) => {
-    let balance = { available: '0' };
+    let balance = BigInt('0');
     try {
         const account = getAccount(accountId);
-        balance = await account.getAccountBalance();
+        balance = await account.getBalance();
     } catch (e) {
         if (e.type === 'AccountDoesNotExist') {
             console.log(e.type);
@@ -154,7 +126,7 @@ export const contractView = async ({
 
     let res;
     try {
-        res = await account.viewFunction({
+        res = await account.callFunction({
             contractId,
             methodName,
             args,
@@ -176,15 +148,15 @@ export const contractView = async ({
  * @param {string} [params.contractId=_contractId] - Contract ID to call
  * @param {string} params.methodName - Contract method name
  * @param {Object} [params.args] - Method arguments
- * @param {string} [params.attachedDeposit='0'] - Amount of NEAR to attach
+ * @param {string} [params.deposit='0'] - Amount of NEAR to attach
  * @returns {Promise<any>} Transaction result
  */
 export const contractCall = async ({
-    accountId,
+    accountId = undefined,
     contractId = _contractId,
     methodName,
     args,
-    attachedDeposit = '0',
+    attachedDeposit = BigInt('0'),
 }) => {
     const account = getAccount(accountId);
     let res;
