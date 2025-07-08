@@ -43,45 +43,60 @@ const app = new Hono();
 app.use('/*', cors());
 
 app.get('/api/address', async (c) => {
-    return c.json({ agentAccountId });
+    return c.json({ accountId: agentAccountId });
 });
 
-app.get('/api/fund-worker/:amount', async (c) => {
-    const account = await getAccount();
-    const res = await account.transfer({
-        receiverId: agentAccountId,
-        amount: parseNearAmount(c.req.param('amount')),
-    });
-    return c.json(res);
+app.get('/api/agent-info', async (c) => {
+    try {
+        return c.json(await getAgentInfo(agentAccountId));
+    } catch (e) {
+        return c.json({ error: e.message });
+    }
 });
 
-app.post('/api/sign', async (c) => {
+app.get('/api/fund-agent/:amount', async (c) => {
+    try {
+        // funding account
+        const account = await getAccount();
+        const res = await account.transfer({
+            receiverId: agentAccountId,
+            amount: parseNearAmount(c.req.param('amount')),
+        });
+        return c.json(res);
+    } catch (e) {
+        return c.json({ error: e.message });
+    }
+});
+
+// must return either { result: <result> } or { error: <error message> }
+app.post('/api/contract/:type', async (c) => {
+    const type = c.req.param('type');
     const args = await c.req.json();
-    const res = await contractCall({
-        methodName: 'sign_with_agent',
-        args,
+
+    // call or view, return response as json or fallback to text
+    let res = null;
+    try {
+        res = await (type === 'call' ? contractCall(args) : contractView(args));
+        try {
+            res = { result: await res.json() };
+        } catch (e) {
+            res = { result: await res.text() };
+        }
+    } catch (e) {
+        res = { error: e.message };
+    }
+
+    return c.json(res);
+});
+
+// helper used in boot and api endpoint above
+const getAgentInfo = async (account_id) =>
+    contractView({
+        methodName: 'get_agent',
+        args: {
+            account_id,
+        },
     });
-
-    return c.json(res);
-});
-
-// test get_signature method on contract
-app.get('/api/test-sign', async (c) => {
-    const path = 'foo';
-    const res = await fetch(`http://localhost:${PORT}/api/sign`, {
-        method: 'POST',
-        body: JSON.stringify({
-            path,
-            payload: [
-                ...(
-                    await createHash('sha256').update(Buffer.from('testing'))
-                ).digest(),
-            ],
-        }),
-    }).then((r) => r.json());
-
-    return c.json(res);
-});
 
 async function boot() {
     // get account before switching to agentAccountId
@@ -114,12 +129,7 @@ async function boot() {
 
     // check if worker is registered
     try {
-        const getWorkerRes = await contractView({
-            methodName: 'get_worker',
-            args: {
-                account_id: agentAccountId,
-            },
-        });
+        const getWorkerRes = await getAgentInfo(agentAccountId);
         if (
             getWorkerRes.codehash === IS_SANDBOX ? APP_CODEHASH : API_CODEHASH
         ) {

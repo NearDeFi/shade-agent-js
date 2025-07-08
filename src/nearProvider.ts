@@ -109,18 +109,17 @@ export const getBalance = async (accountId) => {
 
 /**
  * Calls a view method on a NEAR contract
- * @param {Object} params - View call parameters
- * @param {string} [params.accountId] - Account ID to use for the call
- * @param {string} [params.contractId=_contractId] - Contract ID to call
- * @param {string} params.methodName - Contract method name
- * @param {Object} [params.args={}] - Method arguments
+ * @param {string} methodName - Contract method name
+ * @param {Object} args - Method arguments
+ * @param {string} [accountId = _accountId] - Account ID to use for the call, default is the agent account ID, _accountId
+ * @param {string} [contractId = _contractId] - Contract ID to call, default is the contractId from env, _contractId
  * @returns {Promise<any>} Method result
  */
 export const contractView = async ({
-    accountId,
-    contractId = _contractId,
     methodName,
     args = {},
+    accountId = _accountId,
+    contractId = _contractId,
 }) => {
     const account = getAccount(accountId);
 
@@ -143,20 +142,21 @@ export const contractView = async ({
 
 /**
  * Calls a change method on a NEAR contract
- * @param {Object} params - Call parameters
- * @param {string} [params.accountId] - Account ID to use for the call
- * @param {string} [params.contractId=_contractId] - Contract ID to call
- * @param {string} params.methodName - Contract method name
- * @param {Object} [params.args] - Method arguments
- * @param {string} [params.deposit='0'] - Amount of NEAR to attach
+ * @param {string} methodName - Contract method name
+ * @param {Object} args - Method arguments
+ * @param {string} [accountId = _accountId] - Account ID to use for the call, default is the agent account ID, _accountId
+ * @param {string} [contractId = _contractId] - Contract ID to call, default is the contractId from env, _contractId
+ * @param {bigint} [gas] - gas
+ * @param {bigint} [deposit='0'] - near to attach in yoctoNEAR
  * @returns {Promise<any>} Transaction result
  */
 export const contractCall = async ({
-    accountId = undefined,
-    contractId = _contractId,
     methodName,
     args,
+    accountId = _accountId,
+    contractId = _contractId,
     attachedDeposit = BigInt('0'),
+    gas = GAS,
 }) => {
     const account = getAccount(accountId);
     let res;
@@ -165,7 +165,7 @@ export const contractCall = async ({
             contractId,
             methodName,
             args,
-            gas: GAS,
+            gas,
             attachedDeposit,
         });
     } catch (e) {
@@ -173,33 +173,38 @@ export const contractCall = async ({
         if (/deserialize/gi.test(JSON.stringify(e))) {
             return console.log(`Bad arguments to ${methodName} method`);
         }
-        if (e.context?.transactionHash) {
-            const maxPings = 30;
-            let pings = 0;
-            while (
-                res.final_execution_status != 'EXECUTED' &&
-                pings < maxPings
-            ) {
-                // Sleep 1 second before next ping.
-                await sleep(1000);
-                // txStatus times out when waiting for 'EXECUTED'.
-                // Instead we wait for an earlier status type, sleep between and keep pinging.
-                res = await provider.txStatus(
-                    e.context.transactionHash,
-                    account.accountId,
-                    'INCLUDED',
-                );
-                pings += 1;
-            }
-            if (pings >= maxPings) {
-                console.warn(
-                    `Request status polling exited before desired outcome.\n  Current status: ${res.final_execution_status}\nSignature Request will likley fail.`,
-                );
-            }
-            return parseSuccessValue(res);
-        }
         throw e;
     }
+
+    const maxPings = 30;
+    let pings = 0;
+    while (res.final_execution_status != 'EXECUTED' && pings < maxPings) {
+        // Sleep 1 second before next ping.
+        await sleep(1000);
+        // txStatus times out when waiting for 'EXECUTED'.
+        // Instead we wait for an earlier status type, sleep between and keep pinging.
+        res = await provider.txStatus(
+            res.transaction.hash,
+            account.accountId,
+            'INCLUDED',
+        );
+        pings += 1;
+    }
+    if (pings >= maxPings) {
+        console.warn(
+            `Request status polling exited before desired outcome.\n  Current status: ${res.final_execution_status}\nSignature Request will likley fail.`,
+        );
+    }
+
+    await sleep(5000);
+    res = await provider.txStatus(
+        res.transaction.hash,
+        account.accountId,
+        'EXECUTED',
+    );
+
+    console.log('SuccessValue', res?.status?.SuccessValue);
+
     return parseSuccessValue(res);
 };
 
@@ -210,20 +215,13 @@ export const contractCall = async ({
  * @param {string} transaction.status.SuccessValue - Base64 encoded success value
  * @returns {any} Parsed success value or undefined if empty/invalid
  */
-const parseSuccessValue = (transaction) => {
-    if (transaction.status.SuccessValue.length === 0) return;
-
-    try {
-        return JSON.parse(
-            Buffer.from(transaction.status.SuccessValue, 'base64').toString(
-                'ascii',
-            ),
-        );
-    } catch (e) {
-        console.log(
-            `Error parsing success value for transaction ${JSON.stringify(
-                transaction,
-            )}`,
-        );
+const parseSuccessValue = (res) => {
+    if (res?.status?.SuccessValue === undefined) {
+        throw new Error('SuccessValue is undefined in transaction result');
     }
+    if (res?.status?.SuccessValue?.length === 0) return '';
+
+    return JSON.parse(
+        Buffer.from(res.status.SuccessValue, 'base64').toString('ascii'),
+    );
 };
