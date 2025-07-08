@@ -176,36 +176,24 @@ export const contractCall = async ({
         throw e;
     }
 
+    // temp fix for CCCs when tx.status == 'Started' we don't have the result yet, waiting for tx.status.SuccessValue
     const maxPings = 30;
     let pings = 0;
-    while (res.final_execution_status != 'EXECUTED' && pings < maxPings) {
-        // Sleep 1 second before next ping.
+    while (res.status?.SuccessValue === undefined && pings < maxPings) {
         await sleep(1000);
-        // txStatus times out when waiting for 'EXECUTED'.
-        // Instead we wait for an earlier status type, sleep between and keep pinging.
         res = await provider.txStatus(
             res.transaction.hash,
             account.accountId,
-            'INCLUDED',
+            'EXECUTED',
         );
         pings += 1;
     }
     if (pings >= maxPings) {
-        console.warn(
-            `Request status polling exited before desired outcome.\n  Current status: ${res.final_execution_status}\nSignature Request will likley fail.`,
+        throw new Error(
+            'Transaction did not return res.status.SuccessValue within 30s',
         );
     }
-
-    await sleep(5000);
-    res = await provider.txStatus(
-        res.transaction.hash,
-        account.accountId,
-        'EXECUTED',
-    );
-
-    console.log('SuccessValue', res?.status?.SuccessValue);
-
-    return parseSuccessValue(res);
+    return await parseSuccessValue(res);
 };
 
 /**

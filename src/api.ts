@@ -4,39 +4,32 @@ const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)
     : 'localhost';
 
 /**
- * Gets the worker ephemeral account from the shade-agent-js api docker app
- * TODO error handling and return type checking
+ * Uber agent method to call account methods from agent account
+ * TODO add comment
  */
-export async function getAgentAccountId(): Promise<any> {
-    const res = await fetch(`http://${API_PATH}:${API_PORT}/api/address`).then(
-        (r) => r.json(),
-    );
+export async function agent(methodName, args = {}): Promise<any> {
+    const res = await fetch(
+        `http://${API_PATH}:${API_PORT}/api/agent/${methodName}`,
+        {
+            method: 'POST',
+            body: JSON.stringify(args),
+        },
+    ).then((r) => r.json());
     return res;
 }
 
 /**
- * See args to nearProvider.agentView
+ * Wrappers
  */
-export async function agentView(args): Promise<any> {
-    // must return json either { result: <result> } or { error: <error message> }
-    // it will not error and always return status 200 if the agent api is running
-    return await fetch(`http://${API_PATH}:${API_PORT}/api/contract/view`, {
-        method: 'POST',
-        body: JSON.stringify(args),
-    }).then((r) => r.json());
-}
+export const agentAccountId = async (): Promise<any> => agent('accountId');
+export const agentInfo = async (): Promise<any> =>
+    agent('view', {
+        methodName: 'get_agent',
+        args: { account_id: (await agentAccountId()).accountId },
+    });
 
-/**
- * See args to nearProvider.contractCall
- */
-export async function agentCall(args): Promise<any> {
-    // must return json either { result: <result> } or { error: <error message> }
-    // it will not error and always return status 200 if the agent api is running
-    return await fetch(`http://${API_PATH}:${API_PORT}/api/contract/call`, {
-        method: 'POST',
-        body: JSON.stringify(args),
-    }).then((r) => r.json());
-}
+export const agentView = async (args): Promise<any> => agent('view', args);
+export const agentCall = async (args): Promise<any> => agent('call', args);
 
 /**
  * Gets a signature with the worker account using the path and payload provided
@@ -44,23 +37,12 @@ export async function agentCall(args): Promise<any> {
  * @param {String} payload - need a payload (array of bytes) to sign
  * @param {String} keyType - Ecdsa (default) or Eddsa
  * @returns {Promise<any>} The derived account ID
- *
- * TODO error handling and return type checking
  */
-export async function requestSignature(
-    path: String,
-    payload: Array<Number>,
-    keyType: String = 'Ecdsa',
-): Promise<any> {
-    if (keyType !== 'Ecdsa' && keyType !== 'Eddsa') {
-        throw new Error('Invalid key type. Must be "Ecdsa" or "Eddsa".');
+export const requestSignature = async (args): Promise<any> => {
+    if (!args.keyType) {
+        args.keyType = 'Ecdsa';
     }
-    return await agentCall({
-        methodName: 'request_signature',
-        args: {
-            path,
-            payload,
-            key_type: keyType,
-        },
-    });
-}
+    args.key_type = args.keyType;
+    delete args.keyType; // remove keyType to match the contract's expected args
+    return agent('call', { methodName: 'request_signature', args });
+};

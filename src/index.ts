@@ -14,10 +14,12 @@ export {
 export { deriveAgentAccount, registerAgent } from './agentHelpers';
 
 export {
-    getAgentAccountId,
-    requestSignature,
+    agent,
+    agentAccountId,
+    agentInfo,
     agentCall,
     agentView,
+    requestSignature,
 } from './api';
 
 export { generateAddress } from './kdf';

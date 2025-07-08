@@ -22,12 +22,6 @@ import {
     // } from '@neardefi/shade-agent-js';
 } from './dist/index.cjs';
 
-// TODOs - update sandbox contract to pull hashes based on comments, include comment schema in docker-compose.yaml so hashes can be extracted with splits
-
-// TODO - deploy contracts seperately and not on boot, Phala doesn't have near-cli-rs installed and don't want to wait for that on boot... too much
-
-// Another option is to include near-cli-rs test this tomorrow
-
 // config
 const accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');
 const contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
@@ -42,61 +36,26 @@ const app = new Hono();
 
 app.use('/*', cors());
 
-app.get('/api/address', async (c) => {
-    return c.json({ accountId: agentAccountId });
-});
-
-app.get('/api/agent-info', async (c) => {
-    try {
-        return c.json(await getAgentInfo(agentAccountId));
-    } catch (e) {
-        return c.json({ error: e.message });
-    }
-});
-
-app.get('/api/fund-agent/:amount', async (c) => {
-    try {
-        // funding account
-        const account = await getAccount();
-        const res = await account.transfer({
-            receiverId: agentAccountId,
-            amount: parseNearAmount(c.req.param('amount')),
-        });
-        return c.json(res);
-    } catch (e) {
-        return c.json({ error: e.message });
-    }
-});
-
-// must return either { result: <result> } or { error: <error message> }
-app.post('/api/contract/:type', async (c) => {
-    const type = c.req.param('type');
+// account abstraction for calling arbitrary methods on the agent account
+app.post('/api/agent/:method', async (c) => {
+    const account = await getAccount(accountId);
+    const method = c.req.param('method');
     const args = await c.req.json();
-
-    // call or view, return response as json or fallback to text
-    let res = null;
-    try {
-        res = await (type === 'call' ? contractCall(args) : contractView(args));
-        try {
-            res = { result: await res.json() };
-        } catch (e) {
-            res = { result: await res.text() };
-        }
-    } catch (e) {
-        res = { error: e.message };
-    }
-
-    return c.json(res);
-});
-
-// helper used in boot and api endpoint above
-const getAgentInfo = async (account_id) =>
-    contractView({
-        methodName: 'get_agent',
-        args: {
-            account_id,
-        },
+    account.accountId = () => ({
+        accountId: agentAccountId,
     });
+    account.call = contractCall;
+    account.functionCall = contractCall;
+    account.callFunction = contractCall;
+    account.view = contractView;
+    account.viewFunction = contractView;
+
+    try {
+        return c.json(await account[method](args));
+    } catch (e) {
+        return c.json({ error: e.message });
+    }
+});
 
 async function boot() {
     // get account before switching to agentAccountId
@@ -129,7 +88,12 @@ async function boot() {
 
     // check if worker is registered
     try {
-        const getWorkerRes = await getAgentInfo(agentAccountId);
+        const getWorkerRes = await contractView({
+            methodName: 'get_agent',
+            args: {
+                account_id: agentAccountId,
+            },
+        });
         if (
             getWorkerRes.codehash === IS_SANDBOX ? APP_CODEHASH : API_CODEHASH
         ) {
