@@ -31,15 +31,29 @@ const API_CODEHASH = process.env.API_CODEHASH.replaceAll('"', '');
 const APP_CODEHASH = process.env.APP_CODEHASH.replaceAll('"', '');
 
 let agentAccountId;
-
+const ALLOWED_AGENT_METHODS = [
+    'accountId',
+    'call',
+    'callFunction',
+    'functionCall',
+    'view',
+    'viewFunction',
+    'getAccessKeyList',
+    'getAccessKeys',
+    'getBalance',
+    'getState',
+];
 const app = new Hono();
 
 app.use('/*', cors());
 
 // account abstraction for calling arbitrary methods on the agent account
 app.post('/api/agent/:method', async (c) => {
-    const account = await getAccount(accountId);
     const method = c.req.param('method');
+    if (!ALLOWED_AGENT_METHODS.includes(method)) {
+        return c.json({ error: method + ' not allowed' });
+    }
+    const account = await getAccount(accountId);
     const args = await c.req.json();
     account.accountId = () => ({
         accountId: agentAccountId,

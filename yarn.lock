@@ -265,7 +265,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near-js/accounts@npm:^2.1.0":
+"@near-js/accounts@npm:^2.2.0":
   version: 2.2.1
   resolution: "@near-js/accounts@npm:2.2.1"
   dependencies:
@@ -308,7 +308,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near-js/crypto@npm:2.2.1, @near-js/crypto@npm:^2.1.0":
+"@near-js/crypto@npm:2.2.1, @near-js/crypto@npm:^2.2.0":
   version: 2.2.1
   resolution: "@near-js/crypto@npm:2.2.1"
   dependencies:
@@ -385,7 +385,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near-js/providers@npm:2.2.1, @near-js/providers@npm:^2.1.0":
+"@near-js/providers@npm:2.2.1, @near-js/providers@npm:^2.2.0":
   version: 2.2.1
   resolution: "@near-js/providers@npm:2.2.1"
   dependencies:
@@ -419,7 +419,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near-js/signers@npm:2.2.1, @near-js/signers@npm:^2.1.0":
+"@near-js/signers@npm:2.2.1, @near-js/signers@npm:^2.2.0":
   version: 2.2.1
   resolution: "@near-js/signers@npm:2.2.1"
   dependencies:
@@ -436,7 +436,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near-js/tokens@npm:2.2.1, @near-js/tokens@npm:^2.1.0":
+"@near-js/tokens@npm:2.2.1, @near-js/tokens@npm:^2.2.0":
   version: 2.2.1
   resolution: "@near-js/tokens@npm:2.2.1"
   checksum: 10c0/f90f6afa7940ca7cef5a6826b5ee52e119b7995c10d55fd29dd46c38abac2e19dff07d9548ea20a1bd48cd9311216ff38fae7b125f15ccdd5ecba3a930e44c3b
@@ -500,7 +500,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near-js/utils@npm:2.2.1, @near-js/utils@npm:^2.1.0":
+"@near-js/utils@npm:2.2.1, @near-js/utils@npm:^2.2.0":
   version: 2.2.1
   resolution: "@near-js/utils@npm:2.2.1"
   dependencies:
@@ -535,12 +535,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@neardefi/shade-agent-js@workspace:."
   dependencies:
-    "@near-js/accounts": "npm:^2.1.0"
-    "@near-js/crypto": "npm:^2.1.0"
-    "@near-js/providers": "npm:^2.1.0"
-    "@near-js/signers": "npm:^2.1.0"
-    "@near-js/tokens": "npm:^2.1.0"
-    "@near-js/utils": "npm:^2.1.0"
+    "@near-js/accounts": "npm:^2.2.0"
+    "@near-js/crypto": "npm:^2.2.0"
+    "@near-js/providers": "npm:^2.2.0"
+    "@near-js/signers": "npm:^2.2.0"
+    "@near-js/tokens": "npm:^2.2.0"
+    "@near-js/utils": "npm:^2.2.0"
     "@types/elliptic": "npm:^6"
     "@types/node": "npm:^22.15.21"
     bs58check: "npm:^4.0.0"

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import {
+    agent,
     agentAccountId,
     agentInfo,
     agentCall,
@@ -18,6 +19,12 @@ async function testAgentAccountId() {
 
 async function testAgentInfo() {
     const res = await agentInfo();
+
+    console.log(res);
+}
+
+async function testAddKeyNotAllowed() {
+    const res = await agent('addKey', {});
 
     console.log(res);
 }
@@ -85,6 +92,7 @@ async function testSignEddsa() {
 async function main() {
     await testAgentAccountId();
     await testAgentInfo();
+    await testAddKeyNotAllowed();
     await testView();
     await testCall();
     await testSign();
