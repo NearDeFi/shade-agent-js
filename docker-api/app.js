@@ -47,6 +47,14 @@ const app = new Hono();
 
 app.use('/*', cors());
 
+if (!!process.env.INCLUDE_TESTS) {
+    app.get('/api/test', async (c) => {
+        const tests = await import('./test.js');
+        const passed = await tests.run();
+        return c.json({ passed });
+    });
+}
+
 // account abstraction for calling arbitrary methods on the agent account
 app.post('/api/agent/:method', async (c) => {
     const method = c.req.param('method');

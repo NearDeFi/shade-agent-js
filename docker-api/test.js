@@ -89,7 +89,7 @@ async function testSignEddsa() {
     console.log(res);
 }
 
-async function main() {
+export async function run() {
     await testAgentAccountId();
     await testAgentInfo();
     await testAddKeyNotAllowed();
@@ -97,6 +97,6 @@ async function main() {
     await testCall();
     await testSign();
     await testSignEddsa();
-}
 
-main();
+    return true;
+}

@@ -4,9 +4,9 @@
     "packageManager": "yarn@4.9.1",
     "scripts": {
         "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local --teepod-id 6",
+        "docker:test": "yarn docker:restart && sudo docker build --platform linux/amd64 -t myapp . && sudo docker run --platform linux/amd64 -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
         "deploy:global": "node ../scripts/deploy-global.js",
         "docker:script": "node ../scripts/docker.js",
-        "docker:test": "yarn docker:restart && sudo docker build --platform linux/amd64 -t myapp . && sudo docker run --platform linux/amd64 -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
         "docker:prune": "sudo docker system prune",
         "docker:restart": "sudo systemctl restart docker",
         "docker:image": "sudo docker build --platform linux/amd64 --no-cache -t mattdlockyer/shade-agent-api:latest .",
