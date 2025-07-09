@@ -21,5 +21,3 @@ export {
     agentView,
     requestSignature,
 } from './api';
-
-export { generateAddress } from './kdf';
