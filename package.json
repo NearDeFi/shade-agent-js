@@ -12,7 +12,8 @@
         "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json",
         "build:test": "tsup src/* --format cjs --dts && cp package.json dist/package.json && rm -rf docker-api/dist && mkdir docker-api/dist && cp dist/* docker-api/dist",
         "deploy": "npm publish --access public",
-        "proxy:test": "yarn build:test && yarn build:proxy && node ./scripts/deploy.js"
+        "proxy:test": "yarn build:test && yarn build:proxy && node ./scripts/deploy.js",
+        "deploy:contract": "node ./scripts/deploy.js"
     },
     "devDependencies": {
         "@near-js/accounts": "^2.2.0",

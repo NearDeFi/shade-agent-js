@@ -19,13 +19,14 @@ const {
 // deploy the contract bytes NOT the global contract if there's a cmd line arg of "bytes"
 const DEPLOY_BYTES = true;
 // default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
-const CODEHASH = process.env.CODEHASH || 'proxy';
+const CODEHASH =
+    process.env.API_CODEHASH || process.env.APP_CODEHASH || 'proxy';
 const GLOBAL_CONTRACT_HASH =
     CODEHASH === 'proxy'
-        ? 'GkNZkHqZP3wWJWMnxBeYXutorzEv44i2SJFyhm9kq1eF'
-        : 'AL6bWC2rJMYUtSqx6edn2BMRH4aM9V98EaHmGbLb4EQt';
+        ? 'D1YyvRFMRPvookBAPPhx3NgWoFUx9GcYPAe2JwPj3nTg'
+        : 'D1YyvRFMRPvookBAPPhx3NgWoFUx9GcYPAe2JwPj3nTg';
 const HD_PATH = `"m/44'/397'/0'"`;
-const FUNDING_AMOUNT = parseNearAmount('5');
+const FUNDING_AMOUNT = parseNearAmount('10');
 const GAS = BigInt('300000000000000');
 
 const getAccount = (id) => new Account(connection, id);
@@ -134,7 +135,7 @@ const deploy = async () => {
         gas: GAS,
     });
 
-    console.log('approveRes', approveRes);
+    console.log('approveRes', approveRes, CODEHASH);
 };
 
 deploy();

@@ -48,6 +48,7 @@ const app = new Hono();
 app.use('/*', cors());
 
 if (!!process.env.INCLUDE_TESTS) {
+    console.log('/api/test enabled');
     app.get('/api/test', async (c) => {
         const tests = await import('./test.js');
         const passed = await tests.run();
@@ -101,9 +102,9 @@ async function boot() {
     // console.log('balance', balance.available);
     if (balance < BigInt(parseNearAmount('0.25'))) {
         const amount = BigInt(parseNearAmount('0.3')) - BigInt(balance);
-        console.log('funding', agentAccountId, diff);
+        console.log('funding', agentAccountId, amount);
         await account.transfer({
-            receiverId: receiverId,
+            receiverId: agentAccountId,
             amount,
         });
     }
@@ -148,7 +149,12 @@ async function boot() {
     console.log('Shade Agent API ready on port:', PORT);
 }
 
-boot();
+if (!process.env.NO_BOOT) {
+    boot();
+} else {
+    console.log('NO_BOOT == true');
+    console.log('Server is running on port:', PORT);
+}
 
 serve({
     fetch: app.fetch,

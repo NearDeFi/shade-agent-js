@@ -58,7 +58,7 @@ impl Contract {
 
     // register args see: https://github.com/mattlockyer/based-agent-template/blob/main/pages/api/register.js
 
-    pub fn register_worker(
+    pub fn register_agent(
         &mut self,
         quote_hex: String,
         collateral: String,
