@@ -24,7 +24,7 @@ trait MPCContract {
 const GAS: Gas = Gas::from_tgas(10);
 const ATTACHED_DEPOSIT: NearToken = NearToken::from_yoctonear(1);
 
-pub fn request_signature(path: String, payload: String, key_type: String) -> Promise {
+pub fn internal_request_signature(path: String, payload: String, key_type: String) -> Promise {
     let (payload_v2, domain_id) = match key_type.as_str() {
         "Eddsa" => (Payload::Eddsa(payload), 1),
         _ => (Payload::Ecdsa(payload), 0),

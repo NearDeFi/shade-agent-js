@@ -17,16 +17,16 @@ const {
 } = nearAPI;
 
 // deploy the contract bytes NOT the global contract if there's a cmd line arg of "bytes"
-const DEPLOY_BYTES = true;
+const DEPLOY_BYTES = false;
 // default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
 const CODEHASH =
     process.env.API_CODEHASH || process.env.APP_CODEHASH || 'proxy';
 const GLOBAL_CONTRACT_HASH =
     CODEHASH === 'proxy'
-        ? 'D1YyvRFMRPvookBAPPhx3NgWoFUx9GcYPAe2JwPj3nTg'
-        : 'D1YyvRFMRPvookBAPPhx3NgWoFUx9GcYPAe2JwPj3nTg';
+        ? 'GMXJXnVK9vYd7CSYPtbA56rPau2h5J4YjsSsCfegGi4G'
+        : 'GMXJXnVK9vYd7CSYPtbA56rPau2h5J4YjsSsCfegGi4G';
 const HD_PATH = `"m/44'/397'/0'"`;
-const FUNDING_AMOUNT = parseNearAmount('10');
+const FUNDING_AMOUNT = parseNearAmount('1');
 const GAS = BigInt('300000000000000');
 
 const getAccount = (id) => new Account(connection, id);

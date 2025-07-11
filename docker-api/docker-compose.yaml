@@ -9,7 +9,7 @@ services:
             NEXT_PUBLIC_contractId: ${NEXT_PUBLIC_contractId}
         platform: linux/amd64 # Explicitly set for TDX
         # shade-agent-api-image
-        image: mattdlockyer/shade-agent-api@sha256:08b635606ec96edcfa3789b6eef01ca8f6cbfc76a005a8b67411d7f1671f59b0
+        image: mattdlockyer/shade-agent-api@sha256:ac62ee5ed78c46f7351a0ea1ad1474ed075a95a87a7543370c93d6c89f072cca
         container_name: shade-agent-api
         volumes:
             - /var/run/tappd.sock:/var/run/tappd.sock
@@ -21,11 +21,12 @@ services:
             API_CODEHASH: ${API_CODEHASH}
             APP_CODEHASH: ${APP_CODEHASH}
             NEXT_PUBLIC_contractId: ${NEXT_PUBLIC_contractId}
+            SHADE_AGENT_PORT: 3000
             INCLUDE_TESTS: 'true'
             NO_BOOT: 'true'
         platform: linux/amd64 # Explicitly set for TDX
         # shade-agent-app-image
-        image: mattdlockyer/shade-agent-api@sha256:08b635606ec96edcfa3789b6eef01ca8f6cbfc76a005a8b67411d7f1671f59b0
+        image: mattdlockyer/shade-agent-api@sha256:ac62ee5ed78c46f7351a0ea1ad1474ed075a95a87a7543370c93d6c89f072cca
         container_name: shade-agent-api-test
         ports:
             - '3000:3000'

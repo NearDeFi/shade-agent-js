@@ -40,20 +40,10 @@ impl Contract {
 
     // helpers for method access control
 
-    pub fn require_owner(&mut self) {
-        require!(env::predecessor_account_id() == self.owner_id);
-    }
-
     pub fn approve_codehash(&mut self, codehash: String) {
         // !!! UPGRADE TO YOUR METHOD OF MANAGING APPROVED WORKER AGENT CODEHASHES !!!
         self.require_owner();
         self.approved_codehashes.insert(codehash);
-    }
-
-    /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
-    pub fn require_approved_codehash(&mut self) {
-        let worker = self.get_agent(env::predecessor_account_id());
-        require!(self.approved_codehashes.contains(&worker.codehash));
     }
 
     // register args see: https://github.com/mattlockyer/based-agent-template/blob/main/pages/api/register.js
@@ -106,7 +96,7 @@ impl Contract {
     ) -> Promise {
         self.require_approved_codehash();
 
-        chainsig::request_signature(path, payload, key_type)
+        chainsig::internal_request_signature(path, payload, key_type)
     }
 
     // views
@@ -116,5 +106,17 @@ impl Contract {
             .get(&account_id)
             .expect("no worker found")
             .to_owned()
+    }
+
+    // only for contract methods
+
+    fn require_owner(&mut self) {
+        require!(env::predecessor_account_id() == self.owner_id);
+    }
+
+    /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
+    fn require_approved_codehash(&mut self) {
+        let worker = self.get_agent(env::predecessor_account_id());
+        require!(self.approved_codehashes.contains(&worker.codehash));
     }
 }

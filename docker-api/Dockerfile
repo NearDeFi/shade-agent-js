@@ -24,6 +24,9 @@ USER node
 # Expose application port
 EXPOSE 3140
 
+# Remove after testing (likely won't do anything since nothing is bound to it)
+EXPOSE 3000
+
 ENV NODE_ENV="dev"
 
 # Start command
