@@ -23,12 +23,13 @@ import {
 } from './dist/index.cjs';
 
 // config
-const accountId = process.env.NEAR_ACCOUNT_ID.replaceAll('"', '');
 const contractId = process.env.NEXT_PUBLIC_contractId.replaceAll('"', '');
 const IS_SANDBOX = /sandbox/gim.test(contractId);
 const PORT = process.env.SHADE_AGENT_PORT || 3140;
-const API_CODEHASH = process.env.API_CODEHASH.replaceAll('"', '');
-const APP_CODEHASH = process.env.APP_CODEHASH.replaceAll('"', '');
+// might not be defined for test runner
+const accountId = process.env.NEAR_ACCOUNT_ID?.replaceAll('"', '');
+const API_CODEHASH = process.env.API_CODEHASH?.replaceAll('"', '');
+const APP_CODEHASH = process.env.APP_CODEHASH?.replaceAll('"', '');
 
 let agentAccountId;
 const ALLOWED_AGENT_METHODS = [
@@ -74,7 +75,9 @@ app.post('/api/agent/:method', async (c) => {
     account.viewFunction = contractView;
 
     try {
-        return c.json(await account[method](args));
+        return c.json(
+            await account[method](...(Array.isArray(args) ? args : [args])),
+        );
     } catch (e) {
         return c.json({ error: e.message });
     }

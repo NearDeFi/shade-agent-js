@@ -25,15 +25,16 @@ const GAS = BigInt('300000000000000');
 const _contractId = process.env.NEXT_PUBLIC_contractId?.replaceAll('"', '');
 export const contractId = _contractId;
 export const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
-// setup keystore, set funding account and key
-let _accountId = process.env.NEAR_ACCOUNT_ID?.replaceAll('"', '');
-// console.log('accountId, contractId', _accountId, _contractId);
-const { secretKey } = parseSeedPhrase(
-    process.env.NEAR_SEED_PHRASE?.replaceAll('"', ''),
-);
+let _accountId, signer;
+const { NEAR_ACCOUNT_ID, NEAR_SEED_PHRASE } = process.env;
+// if we're running within the API image and we have ENV vars for NEAR_ACCOUNT_ID and NEAR_SEED_PRASE
+if (NEAR_ACCOUNT_ID && NEAR_SEED_PHRASE) {
+    _accountId = NEAR_ACCOUNT_ID.replaceAll('"', '');
+    const { secretKey } = parseSeedPhrase(NEAR_SEED_PHRASE.replaceAll('"', ''));
+    const keyPair = KeyPair.fromString(secretKey as KeyPairString);
+    signer = new KeyPairSigner(keyPair);
+}
 
-const keyPair = KeyPair.fromString(secretKey as KeyPairString);
-let signer = new KeyPairSigner(keyPair);
 const provider = new JsonRpcProvider({
     url:
         networkId === 'testnet'

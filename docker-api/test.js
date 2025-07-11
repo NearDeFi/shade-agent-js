@@ -9,8 +9,6 @@ import {
     requestSignature,
 } from './dist/index.cjs';
 
-const sleep = (ms = 1500) => new Promise((r) => setTimeout(r, ms));
-
 async function testAgentAccountId() {
     const res = await agentAccountId();
 
@@ -25,6 +23,24 @@ async function testAgentInfo() {
 
 async function testAddKeyNotAllowed() {
     const res = await agent('addKey', {});
+
+    console.log(res);
+}
+
+async function testAddKeyNotAllowed() {
+    const res = await agent('addKey');
+
+    console.log(res);
+}
+
+async function testGetState() {
+    const res = await agent('getState');
+
+    console.log(res);
+}
+
+async function testGetBalance() {
+    const res = await agent('getBalance');
 
     console.log(res);
 }
@@ -93,6 +109,8 @@ export async function run() {
     await testAgentAccountId();
     await testAgentInfo();
     await testAddKeyNotAllowed();
+    await testGetState();
+    await testGetBalance();
     await testView();
     await testCall();
     await testSign();

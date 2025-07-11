@@ -4,10 +4,23 @@ const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)
     : 'localhost';
 
 /**
- * Uber agent method to call account methods from agent account
- * TODO add comment
+ * @typedef {Object} ContractArgs
+ * @property {string} methodName - The name of the method to call.
+ * @property {Object} args - The arguments to pass to the method.
  */
-export async function agent(methodName, args = {}): Promise<any> {
+type ContractArgs = {
+    methodName: string;
+    args: Record<string, any>;
+};
+
+/**
+ * Calls a method on the agent account instance inside the API
+ *
+ * @param {string} methodName - The name of the agent method to call
+ * @param {any} args - Arguments to pass to the agent account method
+ * @returns A promise that resolves with the result of the agent method call.
+ */
+export async function agent(methodName: string, args: any = {}): Promise<any> {
     const res = await fetch(
         `http://${API_PATH}:${API_PORT}/api/agent/${methodName}`,
         {
@@ -19,30 +32,69 @@ export async function agent(methodName, args = {}): Promise<any> {
 }
 
 /**
- * Wrappers
+ * Retrieves the account ID of the agent.
+ *
+ * @returns {Promise<any>} A promise that resolves to the agent's account ID.
  */
-export const agentAccountId = async (): Promise<any> => agent('accountId');
-export const agentInfo = async (): Promise<any> =>
+export const agentAccountId = async (): Promise<{ accountId: string }> =>
+    agent('accountId');
+
+/**
+ * Retrieves the agent's record from the agent contract
+ *
+ * @returns {Promise<any>} A promise that resolves to the agent's account ID.
+ */
+export const agentInfo = async (): Promise<{
+    codehash: string;
+    checksum: string;
+}> =>
     agent('view', {
         methodName: 'get_agent',
         args: { account_id: (await agentAccountId()).accountId },
     });
 
-export const agentView = async (args): Promise<any> => agent('view', args);
-export const agentCall = async (args): Promise<any> => agent('call', args);
+/**
+ * Contract view from agent account inside the API
+ *
+ * @param {ContractArgs} args - The arguments for the contract view method.
+ * @returns A promise that resolves with the result of the view method.
+ */
+export const agentView = async (args: ContractArgs): Promise<any> =>
+    agent('view', args);
 
 /**
- * Gets a signature with the worker account using the path and payload provided
- * @param {String} path - need a path to call MPC contract
- * @param {String} payload - need a payload (array of bytes) to sign
- * @param {String} keyType - Ecdsa (default) or Eddsa
- * @returns {Promise<any>} The derived account ID
+ * Contract call from agent account inside the API
+ *
+ * @param {ContractArgs} args - The arguments for the contract call method.
+ * @returns A promise that resolves with the result of the call method.
  */
-export const requestSignature = async (args): Promise<any> => {
-    if (!args.keyType) {
-        args.keyType = 'Ecdsa';
-    }
-    args.key_type = args.keyType;
-    delete args.keyType; // remove keyType to match the contract's expected args
-    return agent('call', { methodName: 'request_signature', args });
+export const agentCall = async (args: ContractArgs): Promise<any> =>
+    agent('call', args);
+
+/**
+ * Requests a digital signature from the agent for a given payload and path.
+ *
+ * @param {Object} params - The parameters for the signature request.
+ * @param {string} params.path - The path associated with the signature request.
+ * @param {string} params.payload - The payload to be signed.
+ * @param {string} params.keyType - The type of key to use for signing (default is 'Ecdsa').
+ * @returns A promise that resolves with the result of the signature request.
+ */
+export const requestSignature = async ({
+    path,
+    payload,
+    keyType = 'Ecdsa',
+}: {
+    path: string;
+    payload: string;
+    keyType: string;
+}): Promise<any> => {
+    return agent('call', {
+        methodName: 'request_signature',
+        args: {
+            path,
+            payload,
+            key_type: keyType,
+        },
+    });
 };
