@@ -8,12 +8,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
-import {
-    setKey,
-    getImplicit,
-    contractCall,
-    getCurrentAccountId,
-} from './nearProvider';
+import { setKey, getImplicit, contractCall, getCurrentAccountId } from './near';
 
 // if running simulator otherwise this will be undefined
 const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;

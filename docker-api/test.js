@@ -27,12 +27,6 @@ async function testAddKeyNotAllowed() {
     console.log(res);
 }
 
-async function testAddKeyNotAllowed() {
-    const res = await agent('addKey');
-
-    console.log(res);
-}
-
 async function testGetState() {
     const res = await agent('getState');
 

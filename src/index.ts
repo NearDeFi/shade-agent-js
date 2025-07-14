@@ -9,7 +9,7 @@ export {
     contractCall,
     networkId,
     parseNearAmount,
-} from './nearProvider';
+} from './near';
 
 export { deriveAgentAccount, registerAgent } from './agentHelpers';
 

@@ -37,7 +37,7 @@ export async function agent(methodName: string, args: any = {}): Promise<any> {
  * @returns {Promise<any>} A promise that resolves to the agent's account ID.
  */
 export const agentAccountId = async (): Promise<{ accountId: string }> =>
-    agent('accountId');
+    agent('getAccountId');
 
 /**
  * Retrieves the agent's record from the agent contract

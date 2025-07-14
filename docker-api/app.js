@@ -33,7 +33,7 @@ const APP_CODEHASH = process.env.APP_CODEHASH?.replaceAll('"', '');
 
 let agentAccountId;
 const ALLOWED_AGENT_METHODS = [
-    'accountId',
+    'getAccountId',
     'call',
     'callFunction',
     'functionCall',
@@ -63,24 +63,58 @@ app.post('/api/agent/:method', async (c) => {
     if (!ALLOWED_AGENT_METHODS.includes(method)) {
         return c.json({ error: method + ' not allowed' });
     }
-    const account = await getAccount(accountId);
-    const args = await c.req.json();
-    account.accountId = () => ({
+    const account = await getAccount(agentAccountId);
+
+    // create aliases for common methods
+    account.getAccountId = () => ({
         accountId: agentAccountId,
     });
     account.call = contractCall;
     account.functionCall = contractCall;
     account.callFunction = contractCall;
+    account.contractCall = contractCall;
     account.view = contractView;
     account.viewFunction = contractView;
 
+    const args = await c.req.json();
+
+    console.log('agent account', account.accountId);
+    console.log('calling method', method);
+    console.log('with args', args);
+
+    let res;
     try {
-        return c.json(
-            await account[method](...(Array.isArray(args) ? args : [args])),
-        );
+        if (!Array.isArray(args)) {
+            if (typeof args === 'object' && Object.keys(args).length === 0) {
+                res = await account[method]();
+            } else {
+                res = await account[method](args);
+            }
+        } else {
+            res = await account[method](...args);
+        }
     } catch (e) {
         return c.json({ error: e.message });
     }
+
+    console.log('response', res);
+
+    if (method === 'getBalance') {
+        return c.json({ balance: res.toString() });
+    }
+    if (method === 'getState') {
+        return c.json({
+            balance: {
+                total: res.balance.total.toString(),
+                usedOnStorage: res.balance.usedOnStorage.toString(),
+                locked: res.balance.locked.toString(),
+                available: res.balance.available.toString(),
+            },
+            storageUsage: res.storageUsage.toString(),
+            codeHash: res.codehash,
+        });
+    }
+    return c.json(res);
 });
 
 async function boot() {
@@ -105,11 +139,15 @@ async function boot() {
     // console.log('balance', balance.available);
     if (balance < BigInt(parseNearAmount('0.25'))) {
         const amount = BigInt(parseNearAmount('0.3')) - BigInt(balance);
-        console.log('funding', agentAccountId, amount);
-        await account.transfer({
-            receiverId: agentAccountId,
-            amount,
-        });
+        try {
+            await account.transfer({
+                receiverId: agentAccountId,
+                amount,
+            });
+            console.log('Agent account funded:', agentAccountId, amount);
+        } catch (e) {
+            console.log('Error funding agent account:', e.type);
+        }
     }
 
     // check if worker is registered
