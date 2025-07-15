@@ -142,22 +142,23 @@ export const contractView = async ({
  * @returns {Promise<any>} Transaction result
  */
 export const contractCall = async ({
-    methodName,
-    args,
     accountId = _accountId,
     contractId = _contractId,
-    attachedDeposit = BigInt('0'),
+    methodName,
+    args,
     gas = GAS,
+    deposit = BigInt('0'),
 }) => {
     const account = getAccount(accountId);
     let res;
     try {
-        res = await account.functionCall({
+        res = await account.callFunction({
             contractId,
             methodName,
             args,
             gas,
-            attachedDeposit,
+            deposit,
+            waitUntil: 'EXECUTED',
         });
     } catch (e) {
         console.log(e);
@@ -166,41 +167,5 @@ export const contractCall = async ({
         }
         throw e;
     }
-
-    // temp fix for CCCs when tx.status == 'Started' we don't have the result yet, waiting for tx.status.SuccessValue
-    const maxPings = 30;
-    let pings = 0;
-    while (res.status?.SuccessValue === undefined && pings < maxPings) {
-        await sleep(1000);
-        res = await (provider as any).txStatus(
-            res.transaction.hash,
-            account.accountId,
-            'EXECUTED',
-        );
-        pings += 1;
-    }
-    if (pings >= maxPings) {
-        throw new Error(
-            'Transaction did not return res.status.SuccessValue within 30s',
-        );
-    }
-    return await parseSuccessValue(res);
-};
-
-/**
- * Parses the success value from a NEAR transaction result
- * @param {Object} transaction - Transaction result object
- * @param {Object} transaction.status - Transaction status
- * @param {string} transaction.status.SuccessValue - Base64 encoded success value
- * @returns {any} Parsed success value or undefined if empty/invalid
- */
-const parseSuccessValue = (res) => {
-    if (res?.status?.SuccessValue === undefined) {
-        throw new Error('SuccessValue is undefined in transaction result');
-    }
-    if (res?.status?.SuccessValue?.length === 0) return '';
-
-    return JSON.parse(
-        Buffer.from(res.status.SuccessValue, 'base64').toString('ascii'),
-    );
+    return res;
 };
