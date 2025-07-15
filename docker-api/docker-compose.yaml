@@ -10,7 +10,7 @@ services:
             NEAR_RPC_JSON: ${NEAR_RPC_JSON}
         platform: linux/amd64 # Explicitly set for TDX
         # shade-agent-api-image
-        image: mattdlockyer/shade-agent-api@sha256:d021bcb4866aa63613bf5d08a4b8f0154ca32a8daeee0227acc0f868e289b6e2
+        image: mattdlockyer/shade-agent-api@sha256:a86e3a4300b069c08d629a38d61a3d780f7992eaf36aa505e4527e466553e2e5
         container_name: shade-agent-api
         volumes:
             - /var/run/tappd.sock:/var/run/tappd.sock
@@ -24,7 +24,7 @@ services:
             NO_BOOT: 'true'
         platform: linux/amd64 # Explicitly set for TDX
         # shade-agent-app-image
-        image: mattdlockyer/shade-agent-api@sha256:d021bcb4866aa63613bf5d08a4b8f0154ca32a8daeee0227acc0f868e289b6e2
+        image: mattdlockyer/shade-agent-api@sha256:a86e3a4300b069c08d629a38d61a3d780f7992eaf36aa505e4527e466553e2e5
         container_name: shade-agent-api-test
         ports:
             - '3000:3000'

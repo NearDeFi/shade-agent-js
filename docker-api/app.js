@@ -39,8 +39,6 @@ const ALLOWED_AGENT_METHODS = [
     'functionCall',
     'view',
     'viewFunction',
-    'getAccessKeyList',
-    'getAccessKeys',
     'getBalance',
     'getState',
 ];
