@@ -34,7 +34,7 @@ if (NEAR_ACCOUNT_ID && NEAR_SEED_PHRASE) {
     signer = new KeyPairSigner(keyPair);
 }
 
-const provider = getProvider(process.env.NEAR_RPC_JSON);
+const provider = getProvider(process.env.NEAR_RPC_JSON?.replaceAll("'", ''));
 
 // helpers
 

@@ -161,7 +161,7 @@ async function boot() {
         if (
             getWorkerRes.codehash === IS_SANDBOX ? APP_CODEHASH : API_CODEHASH
         ) {
-            console.log('getWorker response', true);
+            console.log('get_agent result', true);
             console.log('Shade Agent API ready on port:', PORT);
             return;
         }
@@ -175,18 +175,18 @@ async function boot() {
             throw e;
         }
     }
-    console.log('getWorker response', false);
+    console.log('get_agent result', false);
 
     // register worker
     let registerAgentRes;
     try {
         registerAgentRes = await registerAgent(!IS_SANDBOX && API_CODEHASH);
     } catch (e) {
-        console.log('registerAgent Error:', e);
+        console.log('register_agent error:', e);
         registerAgentRes = false;
     }
 
-    console.log('registerAgent response', registerAgentRes);
+    console.log('register_agent result', registerAgentRes);
     console.log('Shade Agent API ready on port:', PORT);
 }
 
