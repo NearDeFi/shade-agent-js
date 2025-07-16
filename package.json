@@ -1,7 +1,7 @@
 {
     "type": "module",
     "name": "@neardefi/shade-agent-js",
-    "version": "0.3.0-rc.0",
+    "version": "1.0.0",
     "main": "index.cjs",
     "types": "dist/index.d.ts",
     "author": "Matt Lockyer <github.com/mattlockyer>",
