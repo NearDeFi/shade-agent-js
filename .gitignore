@@ -11,3 +11,5 @@ dist
 contracts/sandbox/target
 # contract
 contracts/proxy/target
+
+docker-api/cli.js

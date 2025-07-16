@@ -3,22 +3,21 @@ export {
     getImplicit,
     getCurrentAccountId,
     setKey,
-    getDevAccountKeyPair,
     getAccount,
     getBalance,
     contractView,
     contractCall,
     networkId,
-} from './nearProvider';
-export {
     parseNearAmount,
-    formatNearAmount,
-} from 'near-api-js/lib/utils/format';
+} from './near';
+
+export { deriveAgentAccount, registerAgent } from './agentHelpers';
+
 export {
-    getAgentAccount,
-    signWithAgent,
-    deriveAgentAccount,
-    registerAgent,
-} from './agentHelpers';
-export { generateAddress } from './kdf';
-export { SearchMode, twitter } from './twitter';
+    agent,
+    agentAccountId,
+    agentInfo,
+    agentCall,
+    agentView,
+    requestSignature,
+} from './api';

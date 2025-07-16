@@ -8,17 +8,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
-import {
-    setKey,
-    getImplicit,
-    contractCall,
-    getCurrentAccountId,
-} from './nearProvider';
-
-const API_PORT = process.env.API_PORT || 3140;
-const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)
-    ? 'shade-agent-api'
-    : 'localhost';
+import { setKey, getImplicit, contractCall, getCurrentAccountId } from './near';
 
 // if running simulator otherwise this will be undefined
 const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
@@ -27,41 +17,6 @@ const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 const randomArray = new Uint8Array(32);
 crypto.getRandomValues(randomArray);
 
-/**
- * Gets the worker ephemeral account from the shade-agent-js api docker app
- * TODO error handling and return type checking
- */
-export async function getAgentAccount(): Promise<any> {
-    console.log(`http://${API_PATH}:${API_PORT}/api/address`);
-    const res = await fetch(`http://${API_PATH}:${API_PORT}/api/address`).then(
-        (r) => r.json(),
-    );
-
-    return res;
-}
-
-/**
- * Gets a signature with the worker account using the path and payload provided
- * @param {String} path - need a path to call MPC contract
- * @param {String} payload - need a payload (array of bytes) to sign
- * @returns {Promise<any>} The derived account ID
- *
- * TODO error handling and return type checking
- */
-export async function signWithAgent(
-    path: String,
-    payload: Array<Number>,
-): Promise<any> {
-    const res = await fetch(`http://${API_PATH}:${API_PORT}/api/sign`, {
-        method: 'POST',
-        body: JSON.stringify({
-            path,
-            payload,
-        }),
-    }).then((r) => r.json());
-
-    return res;
-}
 /**
  * Derives a worker account using TEE-based entropy
  * @param {Buffer | undefined} hash - User provided hash for seed phrase generation. When undefined, it will try to use TEE hardware entropy or JS crypto.
@@ -142,7 +97,7 @@ export async function registerAgent(codehash: String | undefined) {
 
         // register the worker (returns bool)
         resContract = await contractCall({
-            methodName: 'register_worker',
+            methodName: 'register_agent',
             args: {
                 quote_hex,
                 collateral,
@@ -152,7 +107,7 @@ export async function registerAgent(codehash: String | undefined) {
         });
     } else {
         resContract = await contractCall({
-            methodName: 'register_worker',
+            methodName: 'register_agent',
             args: {
                 codehash,
             },

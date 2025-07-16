@@ -2,65 +2,52 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import * as dotenv from 'dotenv';
 dotenv.config({ path: './.env.development.local' });
-import { parseSeedPhrase } from 'near-seed-phrase';
-import * as nearAPI from 'near-api-js';
 
 // const and helpers
-const {
-    Near,
-    Account,
-    KeyPair,
-    keyStores,
-    utils: {
-        format: { parseNearAmount },
-    },
-} = nearAPI;
+
+import { parseSeedPhrase } from 'near-seed-phrase';
+import { JsonRpcProvider } from '@near-js/providers';
+import { KeyPairSigner } from '@near-js/signers';
+import { Account } from '@near-js/accounts';
+import { NEAR } from '@near-js/tokens';
+import { KeyPair } from '@near-js/crypto';
+export const parseNearAmount = (amt) => NEAR.toUnits(amt);
 
 // deploy the contract bytes NOT the global contract if there's a cmd line arg of "bytes"
-const DEPLOY_BYTES = !!process.argv[2] && process.argv[2] === 'bytes';
+const DEPLOY_BYTES = false;
 // default codehash is "proxy" for local development, contract will NOT verify anything in register_worker
-const CODEHASH = process.env.CODEHASH || 'proxy';
+const CODEHASH =
+    process.env.API_CODEHASH || process.env.APP_CODEHASH || 'proxy';
 const GLOBAL_CONTRACT_HASH =
     CODEHASH === 'proxy'
-        ? 'GkNZkHqZP3wWJWMnxBeYXutorzEv44i2SJFyhm9kq1eF'
-        : 'AL6bWC2rJMYUtSqx6edn2BMRH4aM9V98EaHmGbLb4EQt';
+        ? 'GMXJXnVK9vYd7CSYPtbA56rPau2h5J4YjsSsCfegGi4G'
+        : 'GMXJXnVK9vYd7CSYPtbA56rPau2h5J4YjsSsCfegGi4G';
 const HD_PATH = `"m/44'/397'/0'"`;
 const FUNDING_AMOUNT = parseNearAmount('1');
 const GAS = BigInt('300000000000000');
 
-const getAccount = (id) => new Account(connection, id);
+// local vars for module
+const contractId = process.env.NEXT_PUBLIC_contractId?.replaceAll('"', '');
+const networkId = /testnet/gi.test(contractId) ? 'testnet' : 'mainnet';
+let accountId, signer, keyPair;
+const { NEAR_ACCOUNT_ID, NEAR_SEED_PHRASE } = process.env;
+// if we're running within the API image and we have ENV vars for NEAR_ACCOUNT_ID and NEAR_SEED_PRASE
+if (NEAR_ACCOUNT_ID && NEAR_SEED_PHRASE) {
+    accountId = NEAR_ACCOUNT_ID.replaceAll('"', '');
+    const { secretKey } = parseSeedPhrase(NEAR_SEED_PHRASE.replaceAll('"', ''));
+    keyPair = KeyPair.fromString(secretKey);
+    signer = new KeyPairSigner(keyPair);
+}
+const provider = new JsonRpcProvider({
+    url:
+        networkId === 'testnet'
+            ? 'https://test.rpc.fastnear.com'
+            : 'https://free.rpc.fastnear.com',
+});
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// setup account, network, keys
-const accountId = process.env.NEAR_ACCOUNT_ID;
-const contractId = process.env.NEXT_PUBLIC_contractId;
-const networkId = /testnet/gi.test(accountId) ? 'testnet' : 'mainnet';
-console.log('accountId, contractId', accountId, contractId);
-const { secretKey } = parseSeedPhrase(process.env.NEAR_SEED_PHRASE);
-const keyStore = new keyStores.InMemoryKeyStore();
-const keyPair = KeyPair.fromString(secretKey);
-keyStore.setKey(networkId, accountId, keyPair);
-keyStore.setKey(networkId, contractId, keyPair);
-
-// config near
-const config =
-    networkId === 'testnet'
-        ? {
-              networkId,
-              keyStore,
-              nodeUrl: 'https://rpc.testnet.near.org',
-              walletUrl: 'https://testnet.mynearwallet.com/',
-              explorerUrl: 'https://testnet.nearblocks.io',
-          }
-        : {
-              networkId,
-              keyStore,
-              nodeUrl: 'https://rpc.near.org',
-              walletUrl: 'https://mynearwallet.com/',
-              explorerUrl: 'https://nearblocks.io',
-          };
-const near = new Near(config);
-const { connection } = near;
+export const getAccount = (id = _accountId) =>
+    new Account(id, provider, signer);
 
 // deploys sandbox contract with codehash if provided, otherwise deploys proxy contract
 const deploy = async () => {
@@ -134,7 +121,7 @@ const deploy = async () => {
         gas: GAS,
     });
 
-    console.log('approveRes', approveRes);
+    console.log('approveRes', approveRes, CODEHASH);
 };
 
 deploy();

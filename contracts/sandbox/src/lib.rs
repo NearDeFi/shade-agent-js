@@ -8,10 +8,8 @@ use near_sdk::{
 
 use dcap_qvl::{verify, QuoteCollateralV3};
 
+mod chainsig;
 mod collateral;
-mod ecdsa;
-mod external;
-mod utils;
 
 #[near(serializers = [json, borsh])]
 #[derive(Clone)]
@@ -42,25 +40,15 @@ impl Contract {
 
     // helpers for method access control
 
-    pub fn require_owner(&mut self) {
-        require!(env::predecessor_account_id() == self.owner_id);
-    }
-
     pub fn approve_codehash(&mut self, codehash: String) {
         // !!! UPGRADE TO YOUR METHOD OF MANAGING APPROVED WORKER AGENT CODEHASHES !!!
         self.require_owner();
         self.approved_codehashes.insert(codehash);
     }
 
-    /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
-    pub fn require_approved_codehash(&mut self) {
-        let worker = self.get_worker(env::predecessor_account_id());
-        require!(self.approved_codehashes.contains(&worker.codehash));
-    }
-
     // register args see: https://github.com/mattlockyer/based-agent-template/blob/main/pages/api/register.js
 
-    pub fn register_worker(
+    pub fn register_agent(
         &mut self,
         quote_hex: String,
         collateral: String,
@@ -100,18 +88,35 @@ impl Contract {
         true
     }
 
-    pub fn get_signature(&mut self, payload: Vec<u8>, path: String) -> Promise {
+    pub fn request_signature(
+        &mut self,
+        path: String,
+        payload: String,
+        key_type: String,
+    ) -> Promise {
         self.require_approved_codehash();
 
-        ecdsa::get_sig(payload, path, 0)
+        chainsig::internal_request_signature(path, payload, key_type)
     }
 
     // views
 
-    pub fn get_worker(&self, account_id: AccountId) -> Worker {
+    pub fn get_agent(&self, account_id: AccountId) -> Worker {
         self.worker_by_account_id
             .get(&account_id)
             .expect("no worker found")
             .to_owned()
+    }
+
+    // only for contract methods
+
+    fn require_owner(&mut self) {
+        require!(env::predecessor_account_id() == self.owner_id);
+    }
+
+    /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
+    fn require_approved_codehash(&mut self) {
+        let worker = self.get_agent(env::predecessor_account_id());
+        require!(self.approved_codehashes.contains(&worker.codehash));
     }
 }
