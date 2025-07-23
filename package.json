@@ -1,16 +1,25 @@
 {
     "type": "module",
     "name": "@neardefi/shade-agent-js",
-    "version": "1.0.0",
-    "main": "index.cjs",
+    "version": "1.0.1",
+    "main": "dist/index.cjs",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "require": "./dist/index.cjs"
+        }
+    },
+    "files": [
+        "dist"
+    ],
     "author": "Matt Lockyer <github.com/mattlockyer>",
     "license": "MIT",
     "scripts": {
         "build:proxy": "cd ./contracts/proxy && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "build:sandbox": "cd ./contracts/sandbox && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
-        "build": "tsup src/* --format cjs --dts && cp package.json dist/package.json",
-        "build:test": "tsup src/* --format cjs --dts && cp package.json dist/package.json && rm -rf docker-api/dist && mkdir docker-api/dist && cp dist/* docker-api/dist",
+        "build": "tsup src/index.ts --format cjs --dts && cp package.json dist/package.json",
+        "build:test": "yarn run build && rm -rf docker-api/dist && mkdir docker-api/dist && cp dist/* docker-api/dist",
         "deploy": "npm publish --access public",
         "proxy:test": "yarn build:test && yarn build:proxy && node ./scripts/deploy.js",
         "deploy:contract": "node ./scripts/deploy.js"
