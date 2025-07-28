@@ -71,23 +71,28 @@ export const agentView = async (args: ContractArgs): Promise<any> =>
 export const agentCall = async (args: ContractArgs): Promise<any> =>
     agent('call', args);
 
+export enum SignatureKeyType {
+  Eddsa = 'Eddsa',
+  Ecdsa = 'Ecdsa',
+}
+
 /**
  * Requests a digital signature from the agent for a given payload and path.
  *
  * @param {Object} params - The parameters for the signature request.
  * @param {string} params.path - The path associated with the signature request.
  * @param {string} params.payload - The payload to be signed.
- * @param {string} params.keyType - The type of key to use for signing (default is 'Ecdsa').
+ * @param {SignatureKeyType} [params.keyType='Ecdsa'] - The type of key to use for signing (default is 'Ecdsa').
  * @returns A promise that resolves with the result of the signature request.
  */
 export const requestSignature = async ({
     path,
     payload,
-    keyType = 'Ecdsa',
+    keyType = SignatureKeyType.Ecdsa,
 }: {
     path: string;
     payload: string;
-    keyType: string;
+    keyType?: SignatureKeyType;
 }): Promise<any> => {
     return agent('call', {
         methodName: 'request_signature',
