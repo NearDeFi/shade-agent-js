@@ -88,6 +88,7 @@ export const getCurrentAccountId = () => _accountId;
 export const getBalance = async (accountId) => {
     let balance = BigInt('0');
     try {
+        console.log('getBalance for accountId:', accountId);
         const account = getAccount(accountId);
         balance = await account.getBalance();
     } catch (e) {
@@ -100,33 +101,21 @@ export const getBalance = async (accountId) => {
 
 /**
  * Calls a view method on a NEAR contract
+ * @param {string} [contractId = _contractId] - Contract ID to call, default is the contractId from env, _contractId
  * @param {string} methodName - Contract method name
  * @param {Object} args - Method arguments
- * @param {string} [accountId = _accountId] - Account ID to use for the call, default is the agent account ID, _accountId
- * @param {string} [contractId = _contractId] - Contract ID to call, default is the contractId from env, _contractId
  * @returns {Promise<any>} Method result
  */
 export const contractView = async ({
+    contractId = _contractId,
     methodName,
     args = {},
-    accountId = _accountId,
-    contractId = _contractId,
 }) => {
-    const account = getAccount(accountId);
-
     let res;
     try {
-        res = await account.callFunction({
-            contractId,
-            methodName,
-            args,
-            gas: GAS,
-        });
+        res = await provider.callFunction(contractId, methodName, args);
     } catch (e) {
-        if (/deserialize/gi.test(JSON.stringify(e))) {
-            console.log(`Bad arguments to ${methodName} method`);
-        }
-        throw e;
+        console.log('contractView error:', e);
     }
     return res;
 };

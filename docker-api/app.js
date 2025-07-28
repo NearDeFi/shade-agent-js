@@ -133,8 +133,6 @@ async function boot() {
     console.log('worker agent NEAR account ID:', agentAccountId);
     // fund agentAccountId
     const balance = await getBalance(agentAccountId);
-
-    // console.log('balance', balance.available);
     if (balance < BigInt(parseNearAmount('0.25'))) {
         const amount = BigInt(parseNearAmount('0.3')) - BigInt(balance);
         try {
@@ -164,14 +162,7 @@ async function boot() {
             return;
         }
     } catch (e) {
-        // if this isn't the error, then there's a bigger issue
-        if (
-            !/no worker found/gi.test(
-                JSON.stringify(e, Object.getOwnPropertyNames(e)),
-            )
-        ) {
-            throw e;
-        }
+        console.log('get_agent error:', e);
     }
     console.log('get_agent result', false);
 

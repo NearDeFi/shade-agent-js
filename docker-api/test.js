@@ -61,8 +61,7 @@ async function testCall() {
             payload: await createHash('sha256')
                 .update(Buffer.from('testing'))
                 .digest()
-                .toString('hex')
-                .padStart(2, '0'),
+                .toString('hex'),
             key_type: 'Eddsa',
         },
     });

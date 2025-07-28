@@ -8,7 +8,7 @@ For more information see: https://docs.near.org/ai/shade-agents/introduction
 
 #### API Image Hash:
 
-`a86e3a4300b069c08d629a38d61a3d780f7992eaf36aa505e4527e466553e2e5`
+`555a166f4c648a579061f65000ad66c757c70881b468a1ae3b1b4cd67238f2e0`
 
 #### Proxy Contract Hash:
 
