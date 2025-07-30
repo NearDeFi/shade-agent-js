@@ -1,15 +1,9 @@
 {
     "type": "module",
     "name": "@neardefi/shade-agent-js",
-    "version": "1.0.2",
-    "main": "dist/index.cjs",
-    "types": "dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.cts",
-            "require": "./dist/index.cjs"
-        }
-    },
+    "version": "1.0.4",
+    "main": "index.cjs",
+    "types": "index.d.ts",
     "author": "Matt Lockyer <github.com/mattlockyer>",
     "license": "MIT",
     "scripts": {
@@ -40,7 +34,6 @@
         "tsup": "^8.5.0",
         "typescript": "^5.8.3"
     },
-    "bin": "./cli.js",
     "description": "This library is intended to be used in conjunction with the [shade agent template](https://github.com/NearDeFi/shade-agent-template/).",
     "repository": {
         "type": "git",
