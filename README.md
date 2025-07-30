@@ -2,7 +2,7 @@
 
 The following library and docker API are for use in the shade agent stack.
 
-This version is `@neardefi/shade-agent-cli: 1.0.0` for easier deployment.
+This version is `@neardefi/shade-agent-cli: 1.0.x` for easier deployment.
 
 For more information see: https://docs.near.org/ai/shade-agents/introduction
 
