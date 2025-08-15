@@ -58,6 +58,7 @@ pub fn verify_codehash(raw_tcb_info: String, rtmr3: String) -> (String, String) 
     let mut app_compose_string = String::from(app_compose);
     app_compose_string.retain(|c| !c.is_whitespace());
 
+    // will panic if any of the split_once do not occur e.g. malformed yaml and/or missing tag "#shade-agent-api-image"
     let (_, right) = app_compose_string
         .split_once("#shade-agent-api-image")
         .unwrap();
@@ -66,6 +67,7 @@ pub fn verify_codehash(raw_tcb_info: String, rtmr3: String) -> (String, String) 
     let (_, right) = left.split_once("@sha256:").unwrap();
     let (shade_agent_api_image, _) = right.split_at(64);
 
+    // will panic if any of the split_once do not occur e.g. malformed yaml and/or missing tag "#shade-agent-app-image"
     let (_, right) = app_compose_string
         .split_once("#shade-agent-app-image")
         .unwrap();
@@ -73,6 +75,13 @@ pub fn verify_codehash(raw_tcb_info: String, rtmr3: String) -> (String, String) 
     let (left, _) = right.split_once("\\n").unwrap();
     let (_, right) = left.split_once("@sha256:").unwrap();
     let (shade_agent_app_image, _) = right.split_at(64);
+
+    // ensure there are exactly two image declarations in total in the entire app_compose_string
+    let image_declaration_count = app_compose_string.matches("\\nimage:").count();
+    require!(
+        image_declaration_count == 2,
+        "app_compose should contain exactly two image declarations"
+    );
 
     (
         shade_agent_api_image.to_owned(),
