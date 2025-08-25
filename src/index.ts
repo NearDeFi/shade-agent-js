@@ -2,7 +2,6 @@ export { TappdClient } from './tappd';
 export {
     getImplicit,
     getCurrentAccountId,
-    setKey,
     getAccount,
     getBalance,
     contractView,

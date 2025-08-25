@@ -410,8 +410,6 @@ __metadata:
     near-seed-phrase: "npm:^0.2.1"
     tsup: "npm:^8.5.0"
     typescript: "npm:^5.8.3"
-  bin:
-    shade-agent-js: ./cli.js
   languageName: unknown
   linkType: soft
 

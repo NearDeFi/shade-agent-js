@@ -17,6 +17,32 @@ const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 const randomArray = new Uint8Array(32);
 crypto.getRandomValues(randomArray);
 
+// in-memory keystore for agent keys
+let agentAccountId = null;
+let currentAgentKeyIndex = 0;
+const agentKeys = [];
+
+/**
+ * Sets the current signing key for the agent
+ * @param {number} index - Valid index of agentKeys array
+ * @throws {IndexOutOfBounds} If invalid agentKey index is used
+ */
+export function setAgentKey(index: number) {
+    currentAgentKeyIndex = index;
+    setKey(agentAccountId, agentKeys[currentAgentKeyIndex]);
+}
+
+/**
+ * Uses the next available agent key in the agentKeys array as the current signing key for the agent
+ */
+export function nextAgentKey() {
+    currentAgentKeyIndex++;
+    if (currentAgentKeyIndex > agentKeys.length - 1) {
+        currentAgentKeyIndex = 0;
+    }
+    setAgentKey(currentAgentKeyIndex);
+}
+
 /**
  * Derives a worker account using TEE-based entropy
  * @param {Buffer | undefined} hash - User provided hash for seed phrase generation. When undefined, it will try to use TEE hardware entropy or JS crypto.
@@ -51,11 +77,15 @@ export async function deriveAgentAccount(hash: Buffer | undefined) {
 
     // !!! data.secretKey should not be exfiltrated anywhere !!! no logs or debugging tools !!!
     const data = generateSeedPhrase(hash);
-    const accountId = getImplicit(data.publicKey);
-    // set the secretKey (inMemoryKeyStore only)
-    setKey(accountId, data.secretKey);
+    if (!agentAccountId) {
+        const accountId = getImplicit(data.publicKey);
+        agentAccountId = accountId;
+    }
+    // !!! secret key is pushed to in-memory agentKeys array ONLY
+    agentKeys.push(data.secretKey);
+    setAgentKey(agentKeys.length - 1);
 
-    return accountId;
+    return agentAccountId;
 }
 
 /**
