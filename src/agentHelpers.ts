@@ -13,10 +13,6 @@ import { setKey, getImplicit, contractCall, getCurrentAccountId } from './near';
 // if running simulator otherwise this will be undefined
 const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
 
-// in-memory randomness only available to this instance of TEE
-const randomArray = new Uint8Array(32);
-crypto.getRandomValues(randomArray);
-
 // in-memory keystore for agent keys
 let agentAccountId = null;
 let currentAgentKeyIndex = 0;
@@ -51,6 +47,10 @@ export function nextAgentKey() {
 export async function deriveAgentAccount(hash: Buffer | undefined) {
     // use TEE entropy or fallback to js crypto randomArray
     if (!hash) {
+        // in-memory randomness only available to this instance of TEE
+        const randomArray = new Uint8Array(32);
+        crypto.getRandomValues(randomArray);
+
         try {
             // entropy from TEE hardware
             const client = new TappdClient(endpoint);
