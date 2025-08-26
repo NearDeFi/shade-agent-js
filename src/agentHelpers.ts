@@ -8,7 +8,13 @@ if (process.env.NODE_ENV !== 'production') {
 }
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
-import { setKey, getImplicit, contractCall, getCurrentAccountId } from './near';
+import {
+    setKey,
+    getImplicit,
+    contractCall,
+    getCurrentAccountId,
+    addKeyFromSecret,
+} from './near';
 
 // if running simulator otherwise this will be undefined
 const endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
@@ -40,11 +46,11 @@ export function nextAgentKey() {
 }
 
 /**
- * Derives a worker account using TEE-based entropy
+ * Derives a new key for an agent using TEE based entropy if available
  * @param {Buffer | undefined} hash - User provided hash for seed phrase generation. When undefined, it will try to use TEE hardware entropy or JS crypto.
- * @returns {Promise<string>} The derived account ID
+ * @returns {Promise<object>} The generated publicKey, secretKey, seedPhrase as an object
  */
-export async function deriveAgentAccount(hash: Buffer | undefined) {
+async function deriveAgentKey(hash: Buffer | undefined) {
     // use TEE entropy or fallback to js crypto randomArray
     if (!hash) {
         // in-memory randomness only available to this instance of TEE
@@ -76,16 +82,35 @@ export async function deriveAgentAccount(hash: Buffer | undefined) {
     }
 
     // !!! data.secretKey should not be exfiltrated anywhere !!! no logs or debugging tools !!!
-    const data = generateSeedPhrase(hash);
-    if (!agentAccountId) {
-        const accountId = getImplicit(data.publicKey);
-        agentAccountId = accountId;
+    return generateSeedPhrase(hash);
+}
+
+/**
+ * Adds a key to the agent and pushes the key onto the in-memory keystore
+ * @returns {Promise<boolean>} whether the key has been successfully added to the account
+ */
+export async function addAgentKey() {
+    const data = await deriveAgentKey(undefined);
+    const addKeyRes = await addKeyFromSecret(data.secretKey);
+    if (addKeyRes) {
+        agentKeys.push(data.secretKey);
     }
+    return addKeyRes;
+}
+
+/**
+ * Derives a worker account using TEE-based entropy
+ * @param {Buffer | undefined} hash - User provided hash for seed phrase generation. When undefined, it will try to use TEE hardware entropy or JS crypto.
+ * @returns {Promise<string>} The derived account ID
+ */
+export async function deriveAgentAccount(hash: Buffer | undefined) {
+    const data = await deriveAgentKey(hash);
+
+    const accountId = getImplicit(data.publicKey);
+    agentAccountId = accountId;
     // !!! secret key is pushed to in-memory agentKeys array ONLY
     agentKeys.push(data.secretKey);
     setAgentKey(agentKeys.length - 1);
-
-    return agentAccountId;
 }
 
 /**

@@ -97,6 +97,18 @@ export const getBalance = async (accountId) => {
     return balance;
 };
 
+export const addKeyFromSecret = (secretKey) => {
+    const keyPair = KeyPair.fromString(secretKey);
+    const account = getAccount();
+    try {
+        account.addFullAccessKey(keyPair.getPublicKey());
+        return true;
+    } catch (e) {
+        console.log('Error adding key:', e);
+    }
+    return false;
+};
+
 // contract interactions
 
 /**

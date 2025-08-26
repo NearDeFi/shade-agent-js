@@ -13,6 +13,7 @@ export {
 export {
     setAgentKey,
     nextAgentKey,
+    addAgentKey,
     deriveAgentAccount,
     registerAgent,
 } from './agentHelpers';
