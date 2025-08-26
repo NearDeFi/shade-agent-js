@@ -72,8 +72,8 @@ export const agentCall = async (args: ContractArgs): Promise<any> =>
     agent('call', args);
 
 export enum SignatureKeyType {
-  Eddsa = 'Eddsa',
-  Ecdsa = 'Ecdsa',
+    Eddsa = 'Eddsa',
+    Ecdsa = 'Ecdsa',
 }
 
 /**

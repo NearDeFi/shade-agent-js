@@ -10,7 +10,12 @@ export {
     parseNearAmount,
 } from './near';
 
-export { deriveAgentAccount, registerAgent } from './agentHelpers';
+export {
+    setAgentKey,
+    nextAgentKey,
+    deriveAgentAccount,
+    registerAgent,
+} from './agentHelpers';
 
 export {
     agent,
