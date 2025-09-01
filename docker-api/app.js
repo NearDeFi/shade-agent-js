@@ -31,7 +31,10 @@ const accountId = process.env.NEAR_ACCOUNT_ID?.replaceAll('"', '');
 const API_CODEHASH = process.env.API_CODEHASH?.replaceAll('"', '');
 const APP_CODEHASH = process.env.APP_CODEHASH?.replaceAll('"', '');
 
-let agentAccountId;
+let agentIsBooted,
+    agentAccountId,
+    agentIsRegistered = false;
+
 const ALLOWED_AGENT_METHODS = [
     'getAccountId',
     'call',
@@ -55,63 +58,105 @@ if (!!process.env.INCLUDE_TESTS) {
     });
 }
 
-// account abstraction for calling arbitrary methods on the agent account
-app.post('/api/agent/:method', async (c) => {
-    const method = c.req.param('method');
-    if (!ALLOWED_AGENT_METHODS.includes(method)) {
-        return c.json({ error: method + ' not allowed' });
+// new api methods
+
+/**
+ * Get agent account ID
+ * @returns {Promise<{accountId: string}|{error: string}>}
+ */
+app.get('/api/agent/account-id', async (c) => {
+    if (!agentIsBooted) {
+        return c.json({ error: 'agent not booted' });
+    }
+    return c.json({ accountId: agentAccountId });
+});
+
+/**
+ *  Is agent registered
+ * @returns {Promise<{isRegistered: boolean}|{error: string}>}
+ */
+app.get('/api/agent/is-registered', async (c) => {
+    if (!agentIsBooted) {
+        return c.json({ error: 'agent not booted' });
+    }
+    return c.json({ isRegistered: agentIsRegistered });
+});
+
+/**
+ * Get agent balance
+ * @returns {Promise<{balance: string}|{error: string}>}
+ */
+app.get('/api/agent/balance', async (c) => {
+    if (!agentIsBooted) {
+        return c.json({ error: 'agent not booted' });
     }
     const account = await getAccount(agentAccountId);
+    const balance = await account.getBalance();
+    return c.json({ balance: balance.toString() });
+});
 
-    // create aliases for common methods
-    account.getAccountId = () => ({
-        accountId: agentAccountId,
+/**
+ * Request Signature
+ */
+app.post('/api/agent/request-signature', async (c) => {
+    if (!agentIsBooted) {
+        return c.json({ error: 'agent not booted' });
+    }
+    const account = await getAccount(agentAccountId);
+    const { path, payload, keyType = 'Ecdsa' } = await c.req.json();
+
+    const res = await account.callFunction({
+        contractId,
+        methodName: 'request_signature',
+        args: {
+            path,
+            payload,
+            key_type: keyType,
+        },
+        gas: '30000000000000', // 30 Tgas
     });
-    account.call = contractCall;
-    account.functionCall = contractCall;
-    account.callFunction = contractCall;
-    account.contractCall = contractCall;
-    account.view = contractView;
-    account.viewFunction = contractView;
 
-    const args = await c.req.json();
+    return c.json(res);
+});
 
-    console.log('agent account', account.accountId);
-    console.log('calling method', method);
-    console.log('with args', args);
-
-    let res;
-    try {
-        if (!Array.isArray(args)) {
-            if (typeof args === 'object' && Object.keys(args).length === 0) {
-                res = await account[method]();
-            } else {
-                res = await account[method](args);
-            }
-        } else {
-            res = await account[method](...args);
-        }
-    } catch (e) {
-        return c.json({ error: e.message });
+/**
+ * Call function from agent account
+ */
+app.post('/api/agent/call', async (c) => {
+    if (!agentIsBooted) {
+        return c.json({ error: 'agent not booted' });
     }
+    const {
+        methodName,
+        args,
+        gas = '30000000000000',
+        deposit = '0',
+    } = await c.req.json();
 
-    console.log('response', res);
+    const res = await contractCall({
+        methodName,
+        args,
+        gas,
+        deposit,
+    });
 
-    if (method === 'getBalance') {
-        return c.json({ balance: res.toString() });
+    return c.json(res);
+});
+
+/**
+ * View function from agent provider
+ */
+app.post('/api/agent/view', async (c) => {
+    if (!agentIsBooted) {
+        return c.json({ error: 'agent not booted' });
     }
-    if (method === 'getState') {
-        return c.json({
-            balance: {
-                total: res.balance.total.toString(),
-                usedOnStorage: res.balance.usedOnStorage.toString(),
-                locked: res.balance.locked.toString(),
-                available: res.balance.available.toString(),
-            },
-            storageUsage: res.storageUsage.toString(),
-            codeHash: res.codehash,
-        });
-    }
+    const { methodName, args } = await c.req.json();
+
+    const res = await contractView({
+        methodName,
+        args,
+    });
+
     return c.json(res);
 });
 
@@ -157,8 +202,10 @@ async function boot() {
         if (
             getWorkerRes.codehash === IS_SANDBOX ? APP_CODEHASH : API_CODEHASH
         ) {
+            agentIsRegistered = true;
             console.log('get_agent result', true);
             console.log('Shade Agent API ready on port:', PORT);
+            agentIsBooted = true;
             return;
         }
     } catch (e) {
@@ -175,8 +222,10 @@ async function boot() {
         registerAgentRes = false;
     }
 
+    agentIsRegistered = registerAgent;
     console.log('register_agent result', registerAgentRes);
     console.log('Shade Agent API ready on port:', PORT);
+    agentIsBooted = true;
 }
 
 if (!process.env.NO_BOOT) {
