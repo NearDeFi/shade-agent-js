@@ -31,20 +31,8 @@ const accountId = process.env.NEAR_ACCOUNT_ID?.replaceAll('"', '');
 const API_CODEHASH = process.env.API_CODEHASH?.replaceAll('"', '');
 const APP_CODEHASH = process.env.APP_CODEHASH?.replaceAll('"', '');
 
-let agentIsBooted,
-    agentAccountId,
-    agentIsRegistered = false;
+let agentAccountId, agentIsRegistered;
 
-const ALLOWED_AGENT_METHODS = [
-    'getAccountId',
-    'call',
-    'callFunction',
-    'functionCall',
-    'view',
-    'viewFunction',
-    'getBalance',
-    'getState',
-];
 const app = new Hono();
 
 app.use('/*', cors());
@@ -65,21 +53,10 @@ if (!!process.env.INCLUDE_TESTS) {
  * @returns {Promise<{accountId: string}|{error: string}>}
  */
 app.get('/api/agent/account-id', async (c) => {
-    if (!agentIsBooted) {
+    if (agentAccountId == undefined) {
         return c.json({ error: 'agent not booted' });
     }
     return c.json({ accountId: agentAccountId });
-});
-
-/**
- *  Is agent registered
- * @returns {Promise<{isRegistered: boolean}|{error: string}>}
- */
-app.get('/api/agent/is-registered', async (c) => {
-    if (!agentIsBooted) {
-        return c.json({ error: 'agent not booted' });
-    }
-    return c.json({ isRegistered: agentIsRegistered });
 });
 
 /**
@@ -87,7 +64,7 @@ app.get('/api/agent/is-registered', async (c) => {
  * @returns {Promise<{balance: string}|{error: string}>}
  */
 app.get('/api/agent/balance', async (c) => {
-    if (!agentIsBooted) {
+    if (agentAccountId == undefined) {
         return c.json({ error: 'agent not booted' });
     }
     const account = await getAccount(agentAccountId);
@@ -96,10 +73,18 @@ app.get('/api/agent/balance', async (c) => {
 });
 
 /**
+ *  Is agent registered
+ * @returns {Promise<{isRegistered: boolean}|{error: string}>}
+ */
+app.get('/api/agent/is-registered', async (c) => {
+    return c.json({ isRegistered: !!agentIsRegistered });
+});
+
+/**
  * Request Signature
  */
 app.post('/api/agent/request-signature', async (c) => {
-    if (!agentIsBooted) {
+    if (!!agentIsRegistered) {
         return c.json({ error: 'agent not booted' });
     }
     const account = await getAccount(agentAccountId);
@@ -123,7 +108,7 @@ app.post('/api/agent/request-signature', async (c) => {
  * Call function from agent account
  */
 app.post('/api/agent/call', async (c) => {
-    if (!agentIsBooted) {
+    if (agentAccountId == undefined) {
         return c.json({ error: 'agent not booted' });
     }
     const {
@@ -147,7 +132,7 @@ app.post('/api/agent/call', async (c) => {
  * View function from agent provider
  */
 app.post('/api/agent/view', async (c) => {
-    if (!agentIsBooted) {
+    if (agentAccountId == undefined) {
         return c.json({ error: 'agent not booted' });
     }
     const { methodName, args } = await c.req.json();
@@ -205,7 +190,6 @@ async function boot() {
             agentIsRegistered = true;
             console.log('get_agent result', true);
             console.log('Shade Agent API ready on port:', PORT);
-            agentIsBooted = true;
             return;
         }
     } catch (e) {
@@ -225,7 +209,6 @@ async function boot() {
     agentIsRegistered = registerAgent;
     console.log('register_agent result', registerAgentRes);
     console.log('Shade Agent API ready on port:', PORT);
-    agentIsBooted = true;
 }
 
 if (!process.env.NO_BOOT) {
