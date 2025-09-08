@@ -19,6 +19,8 @@ import {
     contractView,
     contractCall,
     deriveAgentAccount,
+    nextAgentKey,
+    addAgentKeys,
     // } from '@neardefi/shade-agent-js';
 } from './dist/index.cjs';
 
@@ -60,6 +62,14 @@ app.get('/api/agent/account-id', async (c) => {
 });
 
 /**
+ *  Is agent registered
+ * @returns {Promise<{isRegistered: boolean}|{error: string}>}
+ */
+app.get('/api/agent/is-registered', async (c) => {
+    return c.json({ isRegistered: !!agentIsRegistered });
+});
+
+/**
  * Get agent balance
  * @returns {Promise<{balance: string}|{error: string}>}
  */
@@ -73,24 +83,18 @@ app.get('/api/agent/balance', async (c) => {
 });
 
 /**
- *  Is agent registered
- * @returns {Promise<{isRegistered: boolean}|{error: string}>}
- */
-app.get('/api/agent/is-registered', async (c) => {
-    return c.json({ isRegistered: !!agentIsRegistered });
-});
-
-/**
  * Request Signature
  */
 app.post('/api/agent/request-signature', async (c) => {
-    if (!!agentIsRegistered) {
+    if (agentAccountId == undefined) {
         return c.json({ error: 'agent not booted' });
     }
-    const account = await getAccount(agentAccountId);
     const { path, payload, keyType = 'Ecdsa' } = await c.req.json();
 
-    const res = await account.callFunction({
+    // rotate signing key
+    nextAgentKey();
+
+    const res = await contractCall({
         contractId,
         methodName: 'request_signature',
         args: {
@@ -117,6 +121,9 @@ app.post('/api/agent/call', async (c) => {
         gas = '30000000000000',
         deposit = '0',
     } = await c.req.json();
+
+    // rotate signing key
+    nextAgentKey();
 
     const res = await contractCall({
         methodName,
@@ -208,6 +215,12 @@ async function boot() {
 
     agentIsRegistered = registerAgent;
     console.log('register_agent result', registerAgentRes);
+
+    // adding keys
+    const number = 10;
+    const addKeyRes = await addAgentKeys(number);
+    console.log(`added ${number} keys:`, addKeyRes);
+
     console.log('Shade Agent API ready on port:', PORT);
 }
 

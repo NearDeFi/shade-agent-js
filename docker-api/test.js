@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 
 import {
-    agent,
     agentAccountId,
-    agentInfo,
+    agentBalance,
+    agentIsRegistered,
     agentCall,
     agentView,
     requestSignature,
@@ -15,38 +15,24 @@ async function testAgentAccountId() {
     console.log(res);
 }
 
-async function testAgentInfo() {
-    const res = await agentInfo();
-
-    console.log(res);
-}
-
-async function testAddKeyNotAllowed() {
-    const res = await agent('addKey', {});
-
-    console.log(res);
-}
-
-async function testGetState() {
-    const res = await agent('getState');
-
-    console.log(res);
-}
-
 async function testGetBalance() {
-    const res = await agent('getBalance');
+    const res = await agentBalance();
 
     console.log(res);
 }
 
-async function testView() {
+async function testIsRegistered() {
+    const res = await agentIsRegistered();
+
+    console.log(res);
+}
+
+async function testAgentView() {
     const { accountId } = await agentAccountId();
 
     const res = await agentView({
         methodName: 'get_agent',
-        args: {
-            account_id: accountId,
-        },
+        args: { account_id: accountId },
     });
 
     console.log(res);
@@ -100,14 +86,14 @@ async function testSignEddsa() {
 
 export async function run() {
     await testAgentAccountId();
-    await testAgentInfo();
-    await testAddKeyNotAllowed();
-    await testGetState();
     await testGetBalance();
-    await testView();
+    await testIsRegistered();
+    await testAgentView();
     await testCall();
     await testSign();
     await testSignEddsa();
 
     return true;
 }
+
+run();

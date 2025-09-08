@@ -13,15 +13,15 @@ export {
 export {
     setAgentKey,
     nextAgentKey,
-    addAgentKey,
+    addAgentKeys,
     deriveAgentAccount,
     registerAgent,
 } from './agentHelpers';
 
 export {
-    agent,
     agentAccountId,
-    agentInfo,
+    agentBalance,
+    agentIsRegistered,
     agentCall,
     agentView,
     requestSignature,

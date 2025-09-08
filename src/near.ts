@@ -13,6 +13,7 @@ import { getProvider } from './nearProvider';
 import { KeyPairSigner } from '@near-js/signers';
 import { Account } from '@near-js/accounts';
 import { NEAR } from '@near-js/tokens';
+import { actionCreators } from '@near-js/transactions';
 import { KeyPair, KeyPairString, PublicKey } from '@near-js/crypto';
 
 export const parseNearAmount = (amt) => NEAR.toUnits(amt);
@@ -97,12 +98,25 @@ export const getBalance = async (accountId) => {
     return balance;
 };
 
-export const addKeyFromSecret = (secretKey) => {
-    const keyPair = KeyPair.fromString(secretKey);
+export const addKeysFromSecrets = async (secrets) => {
     const account = getAccount();
+    const actions = [];
     try {
-        account.addFullAccessKey(keyPair.getPublicKey());
-        return true;
+        for (let secretKey of secrets) {
+            const keyPair = KeyPair.fromString(secretKey);
+            actions.push(
+                actionCreators.addKey(
+                    keyPair.getPublicKey(),
+                    actionCreators.fullAccessKey(),
+                ),
+            );
+        }
+        const tx = await account.createSignedTransaction(
+            account.accountId,
+            actions,
+        );
+        const txRes = await account.provider.sendTransaction(tx);
+        return (txRes.status as any).SuccessValue === '';
     } catch (e) {
         console.log('Error adding key:', e);
     }

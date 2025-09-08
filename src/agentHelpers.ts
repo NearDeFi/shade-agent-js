@@ -13,7 +13,7 @@ import {
     getImplicit,
     contractCall,
     getCurrentAccountId,
-    addKeyFromSecret,
+    addKeysFromSecrets,
 } from './near';
 
 // if running simulator otherwise this will be undefined
@@ -42,7 +42,25 @@ export function nextAgentKey() {
     if (currentAgentKeyIndex > agentKeys.length - 1) {
         currentAgentKeyIndex = 0;
     }
+    console.log(`setAgentKey to ${currentAgentKeyIndex} / ${agentKeys.length}`);
     setAgentKey(currentAgentKeyIndex);
+}
+
+/**
+ * Adds a key to the agent and pushes the key onto the in-memory keystore
+ * @returns {Promise<boolean>} whether the key has been successfully added to the account
+ */
+export async function addAgentKeys(number: number) {
+    const secrets = [];
+    for (let i = 0; i < number; i++) {
+        const data = await deriveAgentKey(undefined);
+        secrets.push(data.secretKey);
+    }
+    const addKeyRes = await addKeysFromSecrets(secrets);
+    if (addKeyRes) {
+        agentKeys.push(...secrets);
+    }
+    return addKeyRes;
 }
 
 /**
@@ -73,7 +91,7 @@ async function deriveAgentKey(hash: Buffer | undefined) {
                 ),
             );
         } catch (e) {
-            console.log('NOT RUNNING IN TEE');
+            console.log('Not in TEE. Using in-memory JS crypto entropy ONLY!');
             // hash of in-memory ONLY
             hash = Buffer.from(
                 await crypto.subtle.digest('SHA-256', randomArray),
@@ -83,19 +101,6 @@ async function deriveAgentKey(hash: Buffer | undefined) {
 
     // !!! data.secretKey should not be exfiltrated anywhere !!! no logs or debugging tools !!!
     return generateSeedPhrase(hash);
-}
-
-/**
- * Adds a key to the agent and pushes the key onto the in-memory keystore
- * @returns {Promise<boolean>} whether the key has been successfully added to the account
- */
-export async function addAgentKey() {
-    const data = await deriveAgentKey(undefined);
-    const addKeyRes = await addKeyFromSecret(data.secretKey);
-    if (addKeyRes) {
-        agentKeys.push(data.secretKey);
-    }
-    return addKeyRes;
 }
 
 /**
@@ -111,6 +116,7 @@ export async function deriveAgentAccount(hash: Buffer | undefined) {
     // !!! secret key is pushed to in-memory agentKeys array ONLY
     agentKeys.push(data.secretKey);
     setAgentKey(agentKeys.length - 1);
+    return agentAccountId;
 }
 
 /**

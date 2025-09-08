@@ -3,6 +3,8 @@ const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)
     ? 'shade-agent-api'
     : 'localhost';
 
+const getMethods = ['account-id', 'is-registered', 'balance'];
+
 /**
  * @typedef {Object} ContractArgs
  * @property {string} methodName - The name of the method to call.
@@ -16,16 +18,17 @@ type ContractArgs = {
 /**
  * Calls a method on the agent account instance inside the API
  *
- * @param {string} methodName - The name of the agent method to call
+ * @param {path} methodName - The name of the agent method to call
  * @param {any} args - Arguments to pass to the agent account method
  * @returns A promise that resolves with the result of the agent method call.
  */
-export async function agent(methodName: string, args: any = {}): Promise<any> {
+export async function apiCall(path: string, args: any = {}): Promise<any> {
+    const isGet = getMethods.includes(path);
     const res = await fetch(
-        `http://${API_PATH}:${API_PORT}/api/agent/${methodName}`,
+        `http://${API_PATH}:${API_PORT}/api/agent/${path}`,
         {
-            method: 'POST',
-            body: JSON.stringify(args),
+            method: isGet ? 'GET' : 'POST',
+            body: isGet ? undefined : JSON.stringify(args),
         },
     ).then((r) => r.json());
     return res;
@@ -37,21 +40,23 @@ export async function agent(methodName: string, args: any = {}): Promise<any> {
  * @returns {Promise<any>} A promise that resolves to the agent's account ID.
  */
 export const agentAccountId = async (): Promise<{ accountId: string }> =>
-    agent('getAccountId');
+    apiCall('account-id');
 
 /**
- * Retrieves the agent's record from the agent contract
+ * Retrieves if the agent is registered.
  *
- * @returns {Promise<any>} A promise that resolves to the agent's account ID.
+ * @returns {Promise<any>} A promise that resolves to boolean if the agent is registered.
  */
-export const agentInfo = async (): Promise<{
-    codehash: string;
-    checksum: string;
-}> =>
-    agent('view', {
-        methodName: 'get_agent',
-        args: { account_id: (await agentAccountId()).accountId },
-    });
+export const agentIsRegistered = async (): Promise<{ isRegistred: boolean }> =>
+    apiCall('is-registered');
+
+/**
+ * Retrieves agent balance.
+ *
+ * @returns {Promise<any>} A promise that resolves to string of BigInt agent balance.
+ */
+export const agentBalance = async (): Promise<{ balance: string }> =>
+    apiCall('balance');
 
 /**
  * Contract view from agent account inside the API
@@ -60,7 +65,7 @@ export const agentInfo = async (): Promise<{
  * @returns A promise that resolves with the result of the view method.
  */
 export const agentView = async (args: ContractArgs): Promise<any> =>
-    agent('view', args);
+    apiCall('view', args);
 
 /**
  * Contract call from agent account inside the API
@@ -69,7 +74,7 @@ export const agentView = async (args: ContractArgs): Promise<any> =>
  * @returns A promise that resolves with the result of the call method.
  */
 export const agentCall = async (args: ContractArgs): Promise<any> =>
-    agent('call', args);
+    apiCall('call', args);
 
 export enum SignatureKeyType {
     Eddsa = 'Eddsa',
@@ -94,12 +99,9 @@ export const requestSignature = async ({
     payload: string;
     keyType?: SignatureKeyType;
 }): Promise<any> => {
-    return agent('call', {
-        methodName: 'request_signature',
-        args: {
-            path,
-            payload,
-            key_type: keyType,
-        },
+    return apiCall('request-signature', {
+        path,
+        payload,
+        keyType,
     });
 };
