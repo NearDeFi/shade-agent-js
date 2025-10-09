@@ -32,6 +32,11 @@ export interface TdxQuoteResponse {
     replayRtmrs: () => string[];
 }
 
+/**
+ * Converts various data types to hexadecimal string representation
+ * @param data - Data to convert (string, Buffer, or Uint8Array)
+ * @returns Hexadecimal string representation of the data
+ */
 export function to_hex(data: string | Buffer | Uint8Array): string {
     if (typeof data === 'string') {
         return Buffer.from(data).toString('hex');
@@ -42,6 +47,12 @@ export function to_hex(data: string | Buffer | Uint8Array): string {
     return (data as Buffer).toString('hex');
 }
 
+/**
+ * Converts an X.509 PEM private key to a Uint8Array
+ * @param pem - PEM formatted private key string
+ * @param max_length - Maximum length of the resulting array (optional)
+ * @returns Uint8Array representation of the private key
+ */
 function x509key_to_uint8array(pem: string, max_length?: number) {
     const content = pem
         .replace(/-----BEGIN PRIVATE KEY-----/, '')
@@ -58,6 +69,11 @@ function x509key_to_uint8array(pem: string, max_length?: number) {
     return result;
 }
 
+/**
+ * Replays RTMR (Runtime Measurement Register) history
+ * @param history - Array of hex strings representing RTMR history
+ * @returns Hex string of the computed RTMR value
+ */
 function replay_rtmr(history: string[]): string {
     const INIT_MR =
         '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
@@ -86,6 +102,11 @@ interface EventLog {
     digest: string;
 }
 
+/**
+ * Replays RTMRs from event log
+ * @param event_log - Array of event log entries with IMR and digest
+ * @returns Record mapping IMR index to computed RTMR value
+ */
 function reply_rtmrs(event_log: EventLog[]): Record<number, string> {
     const rtmrs: Array<string> = [];
     for (let idx = 0; idx < 4; idx++) {
@@ -97,6 +118,13 @@ function reply_rtmrs(event_log: EventLog[]): Record<number, string> {
     return rtmrs;
 }
 
+/**
+ * Sends an RPC request to a Tappd endpoint
+ * @param endpoint - The endpoint URL or Unix socket path
+ * @param path - The RPC path to call
+ * @param payload - JSON payload to send
+ * @returns Promise with the response data
+ */
 export function send_rpc_request<T = any>(
     endpoint: string,
     path: string,
@@ -223,19 +251,24 @@ export function send_rpc_request<T = any>(
     });
 }
 
+/**
+ * Client for interacting with the Tappd service
+ */
 export class TappdClient {
     private endpoint: string;
 
+    /**
+     * Creates a new TappdClient instance
+     * @param endpoint - The Tappd endpoint (default: '/var/run/tappd.sock')
+     */
     constructor(endpoint: string = '/var/run/tappd.sock') {
-        if (process.env.DSTACK_SIMULATOR_ENDPOINT) {
-            console.debug(
-                `Using simulator endpoint: ${process.env.DSTACK_SIMULATOR_ENDPOINT}`,
-            );
-            endpoint = process.env.DSTACK_SIMULATOR_ENDPOINT;
-        }
         this.endpoint = endpoint;
     }
 
+    /**
+     * Gets information about the Tappd service and TEE environment
+     * @returns Promise with Tappd service information including TCB info
+     */
     async getInfo(): Promise<any> {
         const result = await send_rpc_request<any>(
             this.endpoint,
@@ -246,6 +279,12 @@ export class TappdClient {
         return result;
     }
 
+    /**
+     * Extends RTMR3 with an event and payload
+     * @param event - Event name to log
+     * @param payload - Event payload (string or object)
+     * @returns Promise with the result of the event emission
+     */
     async extendRtmr3(event: string, payload: string | object): Promise<any> {
         const payloadJson =
             typeof payload === 'string' ? payload : JSON.stringify(payload);
@@ -257,6 +296,13 @@ export class TappdClient {
         return result;
     }
 
+    /**
+     * Derives a cryptographic key using TEE hardware
+     * @param path - Key derivation path (optional)
+     * @param subject - Subject for key derivation (optional)
+     * @param alt_names - Alternative names for the key (optional)
+     * @returns Promise with derived key response including certificate chain
+     */
     async deriveKey(
         path?: string,
         subject?: string,
@@ -284,6 +330,13 @@ export class TappdClient {
         return Object.freeze(result);
     }
 
+    /**
+     * Generates a TDX (Trust Domain Extensions) quote for TEE attestation
+     * @param report_data - Data to include in the quote (string, Buffer, or Uint8Array)
+     * @param hash_algorithm - Hash algorithm to use (default: undefined, uses 'raw' for direct data)
+     * @returns Promise with TDX quote response including quote and event log
+     * @throws Error if report data is too large for raw mode or if Tappd returns an error
+     */
     async tdxQuote(
         report_data: string | Buffer | Uint8Array,
         hash_algorithm?: TdxQuoteHashAlgorithms,

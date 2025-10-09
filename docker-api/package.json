@@ -18,6 +18,16 @@
         "@hono/node-server": "^1.14.2",
         "@neardefi/shade-agent-js": "^1.0.4",
         "dotenv": "^16.5.0",
-        "hono": "^4.7.10"
+        "hono": "^4.7.10",
+        "@near-js/transactions": "^2.2.2",
+        "@near-js/accounts": "^2.2.2",
+        "@near-js/crypto": "^2.2.2",
+        "@near-js/providers": "^2.2.2",
+        "@near-js/signers": "^2.2.2",
+        "@near-js/tokens": "^2.2.2",
+        "@near-js/utils": "^2.2.2",
+        "@near-js/types": "^2.2.2",
+        "near-seed-phrase": "^0.2.1"
+
     }
 }
