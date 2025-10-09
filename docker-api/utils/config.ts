@@ -94,6 +94,9 @@ export const config = {
         if (isNaN(value) || value < 0) {
             throw new Error(`NUM_EXTRA_KEYS must be a non-negative integer. Got: ${process.env.NUM_EXTRA_KEYS}`);
         }
+        if (value > 100) {
+            throw new Error(`NUM_EXTRA_KEYS cannot exceed 100. Got: ${value}`);
+        }
         return value;
     })(),
     

@@ -14,8 +14,11 @@ let agentAccountId: string | null = null;
 let currentAgentKeyIndex = 0;
 const agentKeys: string[] = [];
 
+let client: TappdClient | undefined = undefined;
 // Set up Tappd client
-const client = new TappdClient();
+if (config.isTEE) {
+    client = new TappdClient();
+}
 
 /**
  * Sets the current signing key for the agent from the in-memory keystore
@@ -74,7 +77,7 @@ async function deriveAgentKey(hash: Buffer | undefined): Promise<{ publicKey: st
 
         // Entropy from TEE hardware
         const randomString = Buffer.from(randomArray).toString('hex');
-        const keyFromTee = await client.deriveKey(
+        const keyFromTee = await client!.deriveKey(
             randomString,
             randomString,
         );
@@ -118,7 +121,7 @@ export async function registerAgent(codehash: string | undefined): Promise<boole
     let resContract: boolean;
     const agentAccount = getAccount(agentAccountId || undefined);
     if (codehash === undefined) {
-        let tcb_info = (await client.getInfo()).tcb_info;
+        let tcb_info = (await client!.getInfo()).tcb_info;
 
         // Parse tcb_info
         if (typeof tcb_info !== 'string') {
@@ -130,7 +133,7 @@ export async function registerAgent(codehash: string | undefined): Promise<boole
         if (!accountId) {
             throw new Error('Account ID is required for TDX quote');
         }
-        const ra = await client.tdxQuote(accountId, 'raw');
+        const ra = await client!.tdxQuote(accountId, 'raw');
         const quote_hex = ra.quote.replace(/^0x/, '');
 
         // Get quote collateral
