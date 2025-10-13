@@ -39,7 +39,7 @@ app.post('/api/agent/account-id', async (c) => {
 });
 
 /**
- * Check if agent is registered with the contract
+ * Check if agent is registered in the agent contract
  * @returns Promise with isRegistered boolean status or error message
  */
 app.post('/api/agent/is-registered', async (c) => {
@@ -68,7 +68,7 @@ app.post('/api/agent/balance', async (c) => {
 });
 
 /**
- * Register the agent with the contract
+ * Register the agent in the agent contract
  * @returns Promise with isRegistered boolean status or error message
  */
 app.post('/api/agent/register', async (c) => {
@@ -93,7 +93,7 @@ app.post('/api/agent/register', async (c) => {
 });
 
 /**
- * Request a signature from the agent using the contract's request_signature method
+ * Request a signature using the agent contract's request_signature function
  * @param path - The path for the signature request
  * @param payload - The payload to be signed
  * @param keyType - The type of key to use for signing (default: 'Ecdsa')
@@ -129,7 +129,7 @@ app.post('/api/agent/request-signature', async (c) => {
 });
 
 /**
- * Call a function on the contract from the agent account
+ * Call a function on the agent contract from the agent account
  * @param methodName - The name of the contract method to call
  * @param args - Arguments to pass to the contract method
  * @param deposit - Amount to deposit with the call (optional)
@@ -171,7 +171,7 @@ app.post('/api/agent/call', async (c) => {
 });
 
 /**
- * Call a view function on the contract (read-only operation)
+ * Call a view function on the agent contract (read-only operation)
  * @param methodName - The name of the contract method to call
  * @param args - Arguments to pass to the contract method
  * @param blockQuery - Block reference for the query (optional)
@@ -199,15 +199,15 @@ app.post('/api/agent/view', async (c) => {
 });
 
 /**
- * Initialize and boot the agent application
+ * Initialize and boot up the agent
  * @returns Promise<void>
  */
 async function boot(): Promise<void> {
     const isTEE = config.isTEE;
     console.log('Running in TEE:', isTEE);
     
-    // Get new worker account
-    // Worker account is consistent for the same account Id for local
+    // Get new agent account
+    // Agent account is consistent for the same account Id for local
     // For TEE, we use the TEE entropy to derive the account Id
     agentAccountId = await deriveAgentAccount(
         !isTEE
@@ -216,7 +216,7 @@ async function boot(): Promise<void> {
               ).digest() // For local 
             : undefined, // For TEE 
     );
-    console.log('worker agent NEAR account ID:', agentAccountId);
+    console.log('Agent NEAR account ID:', agentAccountId);
 
     // Fund the agent account
     if (config.autoFund) {
@@ -224,10 +224,10 @@ async function boot(): Promise<void> {
     }
 
     if (config.autoRegister) {
-        // Check if worker is already registered for the local case
+        // Check if agent is already registered for the local case
         if (!isTEE) {
             try {
-                const getWorkerRes = await provider.callFunction(
+                const getAgentRes = await provider.callFunction(
                     config.contractId,
                     'get_agent',
                     {
@@ -235,7 +235,7 @@ async function boot(): Promise<void> {
                     },
                 );
                 if (
-                    (getWorkerRes as any)?.codehash
+                    (getAgentRes as any)?.codehash
                 ) {
                     agentIsRegistered = true;
                     console.log('Agent is already registered');

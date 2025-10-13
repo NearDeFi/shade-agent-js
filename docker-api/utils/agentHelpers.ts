@@ -23,11 +23,11 @@ if (config.isTEE) {
 
 /**
  * Sets the current signing key for the agent from the in-memory keystore
- * @param index - Valid index of agentKeys array (0-based)
+ * @param index - Index of the agentKeys array to set the current key to
  * @returns void
  * @throws Error if index is invalid or agent account is not set
  */
-export function setAgentKey(index: number): void {
+function setAgentKey(index: number): void {
     if (!agentAccountId) {
         throw new Error('Agent account ID is not set. Call deriveAgentAccount first.');
     }
@@ -46,6 +46,9 @@ export function setAgentKey(index: number): void {
 export function nextAgentKey(): void {
     if (agentKeys.length === 0) {
         throw new Error('No agent keys available. Call deriveAgentAccount or addAgentKeys first.');
+    }
+    if (agentKeys.length === 1) {
+        return;
     }
     currentAgentKeyIndex++;
     if (currentAgentKeyIndex > agentKeys.length - 1) {
@@ -92,7 +95,7 @@ export async function addAgentKeys(number: number): Promise<void> {
 }
 
 /**
- * Derives a new key for an agent using TEE-based entropy if available
+ * Derives a new key for the agent 
  * @param hash - User provided hash for seed phrase generation. When undefined, uses TEE hardware entropy and JS crypto
  * @returns Promise with object containing publicKey, secretKey, and seedPhrase
  * @throws Error if TEE client is required but not available, or key derivation fails
@@ -105,7 +108,7 @@ async function deriveAgentKey(hash: Buffer | undefined): Promise<{ publicKey: st
                 throw new Error('Tappd client is required for TEE entropy but not available');
             }
             
-            // In-memory randomness only available to this instance of TEE
+            // JS crypto random
             const randomArray = new Uint8Array(32);
             crypto.getRandomValues(randomArray);
 
@@ -115,7 +118,7 @@ async function deriveAgentKey(hash: Buffer | undefined): Promise<{ publicKey: st
                 randomString,
                 randomString,
             );
-            // Hash of in-memory and TEE entropy
+            // Hash of JS crypto random and TEE entropy
             hash = Buffer.from(
                 await crypto.subtle.digest(
                     'SHA-256',
@@ -132,7 +135,7 @@ async function deriveAgentKey(hash: Buffer | undefined): Promise<{ publicKey: st
 }
 
 /**
- * Derives a worker account using TEE-based entropy and sets it as the current agent account
+ * Derives the agent account ID
  * @param hash - User provided hash for seed phrase generation. When undefined, uses TEE hardware entropy and JS crypto
  * @returns Promise<string> - The derived account ID
  * @throws Error if key derivation fails or account setup fails
@@ -163,8 +166,8 @@ export async function deriveAgentAccount(hash: Buffer | undefined): Promise<stri
 }
 
 /**
- * Registers a worker with the contract
- * @param codehash - Provided codehash for proxy contract (local dev). If undefined, uses TEE attestation
+ * Registers the agent in the agent contract
+ * @param codehash - Provided codehash (used in local dev). If undefined, uses TEE attestation
  * @returns Promise<boolean> - true if registration was successful, false otherwise
  */
 export async function registerAgent(codehash: string | undefined): Promise<boolean> {
@@ -228,7 +231,7 @@ export async function registerAgent(codehash: string | undefined): Promise<boole
                 return false;
             }
             
-            // Register the worker
+            // Register the agent
             const txRes = await agentAccount.callFunction({
                 contractId: config.contractId,
                 methodName: 'register_agent',

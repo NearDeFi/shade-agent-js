@@ -25,11 +25,16 @@ export interface Ed25519SignatureResponse {
 
 export type SignatureResponse = Secp256k1SignatureResponse | Ed25519SignatureResponse;
 
+export enum SignatureKeyType {
+    Eddsa = 'Eddsa',
+    Ecdsa = 'Ecdsa',
+}
+
 const API_PORT = process.env.API_PORT || 3140;
 
 /**
  * Detects if the application is running in a TEE 
- * @returns boolean - true if running in a verified TEE environment, false otherwise
+ * @returns boolean - true if running in a TEE, false otherwise
  */
 function detectTEE(): boolean {
     // First check if socket exists
@@ -45,12 +50,11 @@ function detectTEE(): boolean {
 
 const API_PATH = detectTEE() ? 'shade-agent-api' : 'localhost';
 
-
 /**
- * Calls a method on the agent account instance inside the API
- * @param path - The name of the agent method to call
- * @param args - Arguments to pass to the agent account method
- * @returns A promise that resolves with the result of the agent method call
+ * Makes a call to the shade-agent-api
+ * @param path - The name of the method to call
+ * @param args - Arguments to pass to the method
+ * @returns A promise that resolves with the result of the API call
  */
 export async function apiCall(path: string, args: any = {}): Promise<any> {
     const res = await fetch(
@@ -83,7 +87,7 @@ export const agentIsRegistered = async (): Promise<boolean> => {
 
 /**
  * Retrieves agent balance
- * @returns A promise that resolves to the agent's balance in yoctoNEAR units
+ * @returns A promise that resolves to the agent's balance in yoctoNEAR 
  */
 export const agentBalance = async (): Promise<bigint> => {
     const result = await apiCall('balance');
@@ -92,7 +96,7 @@ export const agentBalance = async (): Promise<bigint> => {
 
 /**
  * Registers the agent if it is not already registered
- * @returns A promise that resolves to true if the agent is registered, false otherwise
+ * @returns A promise that resolves to true if the agent registered successfully, false otherwise
  */
 export const agentRegister = async (): Promise<boolean> => {
     const result = await apiCall('register');
@@ -100,13 +104,12 @@ export const agentRegister = async (): Promise<boolean> => {
 };
 
 /**
- * Call a view function on the agent contract via the agent and return parsed result
- *
+ * Call a view function on the agent contract and return the result
  * @param params
  * @param params.methodName The method that will be called
  * @param params.args Arguments, either as a valid JSON Object or a raw Uint8Array
  * @param params.blockQuery (optional) Block reference for the query (default: { finality: 'optimistic' })
- * @returns A promise that resolves with the parsed result of the view function call
+ * @returns A promise that resolves with the result of the view function call
  */
 export const agentView = async <T extends SerializedReturnValue>(params: {
     methodName: string;
@@ -117,15 +120,14 @@ export const agentView = async <T extends SerializedReturnValue>(params: {
 };
 
 /**
- * Call a function on the agent contract via the agent and return parsed transaction result
- *
+ * Call a function on the agent contract and return the result
  * @param params
  * @param params.methodName The method that will be called
  * @param params.args Arguments, either as a valid JSON Object or a raw Uint8Array
  * @param params.deposit (optional) Amount of NEAR Tokens to attach to the call
  * @param params.gas (optional) Amount of GAS to use attach to the call
  * @param params.waitUntil (optional) Transaction finality to wait for
- * @returns A promise that resolves with the parsed result of the contract function call
+ * @returns A promise that resolves with the result of the contract function call
  */
 export const agentCall = async <T extends SerializedReturnValue>(params: {
     methodName: string;
@@ -136,11 +138,6 @@ export const agentCall = async <T extends SerializedReturnValue>(params: {
 }): Promise<T> => {
     return apiCall('call', params) as Promise<T>;
 };
-
-export enum SignatureKeyType {
-    Eddsa = 'Eddsa',
-    Ecdsa = 'Ecdsa',
-}
 
 /**
  * Requests a digital signature from the agent for a given payload and path
