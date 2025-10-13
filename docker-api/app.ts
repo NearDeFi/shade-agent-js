@@ -67,6 +67,10 @@ app.post('/api/agent/balance', async (c) => {
     return c.json({ balance: balance.toString() });
 });
 
+/**
+ * Register the agent with the contract
+ * @returns Promise with isRegistered boolean status or error message
+ */
 app.post('/api/agent/register', async (c) => {
     if (agentAccountId == undefined) {
         return c.json({ error: 'agent not booted' });
@@ -115,9 +119,7 @@ app.post('/api/agent/request-signature', async (c) => {
                 payload,
                 key_type: keyType,
             },
-            gas: BigInt('30000000000000'),
             deposit: BigInt('1'),
-            waitUntil: 'EXECUTED',
         });
     } catch (e) {
         return c.json({ error: 'error calling function', details: e });
@@ -130,9 +132,9 @@ app.post('/api/agent/request-signature', async (c) => {
  * Call a function on the contract from the agent account
  * @param methodName - The name of the contract method to call
  * @param args - Arguments to pass to the contract method
- * @param deposit - Amount to deposit with the call (default: '0')
- * @param gas - Gas limit for the call (default: 30 Tgas)
- * @param waitUntil - When to wait until (default: 'EXECUTED')
+ * @param deposit - Amount to deposit with the call (optional)
+ * @param gas - Gas limit for the call (optional)
+ * @param waitUntil - When to wait until (optional)
  * @returns Promise with call result or error message
  */
 app.post('/api/agent/call', async (c) => {
@@ -142,9 +144,9 @@ app.post('/api/agent/call', async (c) => {
     const {
         methodName,
         args,
-        deposit = '0',
-        gas = BigInt('30000000000000'),
-        waitUntil = 'EXECUTED',
+        deposit,
+        gas,
+        waitUntil,
     } = await c.req.json();
 
     // Rotate signing key
@@ -172,20 +174,22 @@ app.post('/api/agent/call', async (c) => {
  * Call a view function on the contract (read-only operation)
  * @param methodName - The name of the contract method to call
  * @param args - Arguments to pass to the contract method
+ * @param blockQuery - Block reference for the query (optional)
  * @returns Promise with view result or error message
  */
 app.post('/api/agent/view', async (c) => {
     if (agentAccountId == undefined) {
         return c.json({ error: 'agent not booted' });
     }
-    const { methodName, args } = await c.req.json();
+    const { methodName, args, blockQuery } = await c.req.json();
 
     let res: any;
     try {
         res = await provider.callFunction(
             config.contractId,
             methodName,
-            args
+            args,
+            blockQuery
         );
     } catch (e) {
         return c.json({ error: 'error calling function', details: e });

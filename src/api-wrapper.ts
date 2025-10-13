@@ -1,80 +1,141 @@
-const API_PORT = process.env.API_PORT || 3140;
-const API_PATH = /sandbox/gim.test(process.env.NEXT_PUBLIC_contractId)
-    ? 'shade-agent-api'
-    : 'localhost';
+import { existsSync } from 'fs';
 
-const getMethods = ['account-id', 'is-registered', 'balance'];
+// Type definitions matching near-api-js
+export type SerializedReturnValue = string | number | boolean | object;
+export type TxExecutionStatus = 'NONE' | 'INCLUDED' | 'INCLUDED_FINAL' | 'EXECUTED' | 'FINAL' | 'EXECUTED_OPTIMISTIC';
+export type Finality = 'optimistic' | 'near-final' | 'final';
+export type BlockReference = { blockId: string } | { finality: Finality };
+
+// Signature response types
+export interface Secp256k1SignatureResponse {
+  scheme: 'Secp256k1';
+  big_r: {
+    affine_point: string;
+  };
+  s: {
+    scalar: string;
+  };
+  recovery_id: number;
+}
+
+export interface Ed25519SignatureResponse {
+  scheme: 'Ed25519';
+  signature: number[];
+}
+
+export type SignatureResponse = Secp256k1SignatureResponse | Ed25519SignatureResponse;
+
+const API_PORT = process.env.API_PORT || 3140;
 
 /**
- * @typedef {Object} ContractArgs
- * @property {string} methodName - The name of the method to call.
- * @property {Object} args - The arguments to pass to the method.
+ * Detects if the application is running in a TEE 
+ * @returns boolean - true if running in a verified TEE environment, false otherwise
  */
-type ContractArgs = {
-    methodName: string;
-    args: Record<string, any>;
-};
+function detectTEE(): boolean {
+    // First check if socket exists
+    try {
+        if (!existsSync('/var/run/tappd.sock')) {
+            return false;
+        }
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+const API_PATH = detectTEE() ? 'shade-agent-api' : 'localhost';
+
 
 /**
  * Calls a method on the agent account instance inside the API
- *
- * @param {path} methodName - The name of the agent method to call
- * @param {any} args - Arguments to pass to the agent account method
- * @returns A promise that resolves with the result of the agent method call.
+ * @param path - The name of the agent method to call
+ * @param args - Arguments to pass to the agent account method
+ * @returns A promise that resolves with the result of the agent method call
  */
 export async function apiCall(path: string, args: any = {}): Promise<any> {
-    const isGet = getMethods.includes(path);
     const res = await fetch(
         `http://${API_PATH}:${API_PORT}/api/agent/${path}`,
         {
-            method: isGet ? 'GET' : 'POST',
-            body: isGet ? undefined : JSON.stringify(args),
+            method: 'POST',
+            body: JSON.stringify(args),
         },
     ).then((r) => r.json());
     return res;
 }
 
 /**
- * Retrieves the account ID of the agent.
- *
- * @returns {Promise<any>} A promise that resolves to the agent's account ID.
+ * Retrieves the account ID of the agent
+ * @returns A promise that resolves to the agent's account ID
  */
-export const agentAccountId = async (): Promise<{ accountId: string }> =>
-    apiCall('account-id');
+export const agentAccountId = async (): Promise<string> => {
+    const result = await apiCall('account-id');
+    return result.accountId;
+};
 
 /**
- * Retrieves if the agent is registered.
- *
- * @returns {Promise<any>} A promise that resolves to boolean if the agent is registered.
+ * Retrieves if the agent is registered
+ * @returns A promise that resolves to true if the agent is registered, false otherwise
  */
-export const agentIsRegistered = async (): Promise<{ isRegistred: boolean }> =>
-    apiCall('is-registered');
+export const agentIsRegistered = async (): Promise<boolean> => {
+    const result = await apiCall('is-registered');
+    return result.isRegistered;
+};
 
 /**
- * Retrieves agent balance.
- *
- * @returns {Promise<any>} A promise that resolves to string of BigInt agent balance.
+ * Retrieves agent balance
+ * @returns A promise that resolves to the agent's balance in yoctoNEAR units
  */
-export const agentBalance = async (): Promise<{ balance: string }> =>
-    apiCall('balance');
+export const agentBalance = async (): Promise<bigint> => {
+    const result = await apiCall('balance');
+    return BigInt(result.balance);
+};
 
 /**
- * Contract view from agent account inside the API
- *
- * @param {ContractArgs} args - The arguments for the contract view method.
- * @returns A promise that resolves with the result of the view method.
+ * Registers the agent if it is not already registered
+ * @returns A promise that resolves to true if the agent is registered, false otherwise
  */
-export const agentView = async (args: ContractArgs): Promise<any> =>
-    apiCall('view', args);
+export const agentRegister = async (): Promise<boolean> => {
+    const result = await apiCall('register');
+    return result.isRegistered;
+};
 
 /**
- * Contract call from agent account inside the API
+ * Call a view function on the agent contract via the agent and return parsed result
  *
- * @param {ContractArgs} args - The arguments for the contract call method.
- * @returns A promise that resolves with the result of the call method.
+ * @param params
+ * @param params.methodName The method that will be called
+ * @param params.args Arguments, either as a valid JSON Object or a raw Uint8Array
+ * @param params.blockQuery (optional) Block reference for the query (default: { finality: 'optimistic' })
+ * @returns A promise that resolves with the parsed result of the view function call
  */
-export const agentCall = async (args: ContractArgs): Promise<any> =>
-    apiCall('call', args);
+export const agentView = async <T extends SerializedReturnValue>(params: {
+    methodName: string;
+    args: Uint8Array | Record<string, any>;
+    blockQuery?: BlockReference;
+}): Promise<T> => {
+    return apiCall('view', params) as Promise<T>;
+};
+
+/**
+ * Call a function on the agent contract via the agent and return parsed transaction result
+ *
+ * @param params
+ * @param params.methodName The method that will be called
+ * @param params.args Arguments, either as a valid JSON Object or a raw Uint8Array
+ * @param params.deposit (optional) Amount of NEAR Tokens to attach to the call
+ * @param params.gas (optional) Amount of GAS to use attach to the call
+ * @param params.waitUntil (optional) Transaction finality to wait for
+ * @returns A promise that resolves with the parsed result of the contract function call
+ */
+export const agentCall = async <T extends SerializedReturnValue>(params: {
+    methodName: string;
+    args: Uint8Array | Record<string, any>;
+    deposit?: bigint | string | number;
+    gas?: bigint | string | number;
+    waitUntil?: TxExecutionStatus;
+}): Promise<T> => {
+    return apiCall('call', params) as Promise<T>;
+};
 
 export enum SignatureKeyType {
     Eddsa = 'Eddsa',
@@ -82,13 +143,12 @@ export enum SignatureKeyType {
 }
 
 /**
- * Requests a digital signature from the agent for a given payload and path.
- *
- * @param {Object} params - The parameters for the signature request.
- * @param {string} params.path - The path associated with the signature request.
- * @param {string} params.payload - The payload to be signed.
- * @param {SignatureKeyType} [params.keyType='Ecdsa'] - The type of key to use for signing (default is 'Ecdsa').
- * @returns A promise that resolves with the result of the signature request.
+ * Requests a digital signature from the agent for a given payload and path
+ * @param params - The parameters for the signature request
+ * @param params.path - The path associated with the signature request
+ * @param params.payload - The payload to be signed
+ * @param params.keyType - The type of key to use for signing (default is 'Ecdsa')
+ * @returns A promise that resolves with the result of the signature request
  */
 export const requestSignature = async ({
     path,
@@ -98,7 +158,7 @@ export const requestSignature = async ({
     path: string;
     payload: string;
     keyType?: SignatureKeyType;
-}): Promise<any> => {
+}): Promise<SignatureResponse> => {
     return apiCall('request-signature', {
         path,
         payload,

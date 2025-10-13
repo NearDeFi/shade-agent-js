@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { TappdClient } from './tappd';
 
 /**
- * Detects if the application is running in a TEE (Trusted Execution Environment)
+ * Detects if the application is running in a TEE 
  * 
  * If it is running in a TEE but this fails for whatever reason,
  * then it will generate a deterministic account ID for the agent.
