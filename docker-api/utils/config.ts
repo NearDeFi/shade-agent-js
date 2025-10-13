@@ -84,9 +84,17 @@ export const config = {
     // Network configuration
     nearRpcJson: process.env.NEAR_RPC_JSON?.replaceAll("'", '') || '',
     
-    // Account configuration
+    // Sponsor account configuration
     sponsorAccountId: getRequiredEnv('SPONSOR_ACCOUNT_ID'),
     sponsorSeedPhrase: getRequiredEnv('SPONSOR_SEED_PHRASE'),
+    autoFund: process.env.AUTO_FUND !== 'false',
+    fundAmount: (() => {
+        const value = parseFloat(process.env.FUND_AMOUNT || '0.3');
+        if (isNaN(value) || value < 0.1 || value > 10) {
+            throw new Error(`FUND_AMOUNT must be between 0.1 and 10 NEAR. Got: ${process.env.FUND_AMOUNT || '0.3'}`);
+        }
+        return value.toString();
+    })(),
 
     // Agent configuration
     numExtraKeys: (() => {
@@ -99,17 +107,17 @@ export const config = {
         }
         return value;
     })(),
+    autoRegister: process.env.AUTO_REGISTER !== 'false',
     
     // API configuration
     shadeAgentPort: parseInt(process.env.SHADE_AGENT_PORT || '3140'),
     apiCodehash: getRequiredEnv('API_CODEHASH'),
     appCodehash: getRequiredEnv('APP_CODEHASH'),
     
-    // Feature configuration
     // Do we need this? I think it can just be run externally, safer
     // includeTests: process.env.INCLUDE_TESTS === 'true',
-    // noBoot: process.env.NO_BOOT === 'true',
-    
+    // noBoot: process.env.NO_BOOT === 'true', 
+
     // Pre-computed derived values
     // isSandbox,
     networkId,

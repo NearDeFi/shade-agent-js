@@ -76,13 +76,12 @@ export const getAccount = (id: string | undefined = _accountId): Account => {
  */
 export const getCurrentAccountId = (): string | undefined => _accountId;
 
-
 /**
  * Adds multiple keys to the current account from secret keys
  * @param secrets - Array of secret keys to add to the account
- * @returns Promise<boolean> - true if all keys were added successfully, false otherwise
+ * @returns void
  */
-export const addKeysFromSecrets = async (secrets: string[]): Promise<boolean> => {
+export const addKeysFromSecrets = async (secrets: string[]): Promise<void> => {
     const account = getAccount();
     const actions: any[] = [];
     try {
@@ -100,10 +99,11 @@ export const addKeysFromSecrets = async (secrets: string[]): Promise<boolean> =>
             actions,
         );
         const txRes = await account.provider.sendTransaction(tx);
-        return (txRes.status as any).SuccessValue === '';
+        if ((txRes.status as any).SuccessValue !== '') {
+            throw new Error('Failed to add key');
+        }
     } catch (e) {
-        console.log('Error adding key:', e);
+        throw new Error(`Failed to add key: ${e}`);
     }
-    return false;
 };
 

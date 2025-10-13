@@ -2,16 +2,13 @@ import { createHash } from 'node:crypto';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { Hono } from 'hono';
-import {
-    getAccount,
-    parseNearAmount,
-} from './utils/near.js';
-import { provider } from './utils/near.js';
+import { getAccount, provider } from './utils/near.js';
 import {
     registerAgent,
     deriveAgentAccount,
     nextAgentKey,
     addAgentKeys,
+    fundAgentAccount,
 } from './utils/agentHelpers.js';
 import { config } from './utils/config.js';
 
@@ -70,7 +67,26 @@ app.post('/api/agent/balance', async (c) => {
     return c.json({ balance: balance.toString() });
 });
 
-// Add register agent method 
+app.post('/api/agent/register', async (c) => {
+    if (agentAccountId == undefined) {
+        return c.json({ error: 'agent not booted' });
+    }
+    if (agentIsRegistered) {
+        return c.json({ error: 'agent already registered' });
+    }
+    // Add keys to the agent account
+    await addAgentKeys(config.numExtraKeys);
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Register the agent
+    const isRegistered = await registerAgent(!config.isTEE ? config.apiCodehash : undefined);
+    if (!isRegistered) {
+        return c.json({ error: 'failed to register agent' });
+    }
+    agentIsRegistered = true;
+    return c.json({ isRegistered });
+});
 
 /**
  * Request a signature from the agent using the contract's request_signature method
@@ -198,80 +214,46 @@ async function boot(): Promise<void> {
     );
     console.log('worker agent NEAR account ID:', agentAccountId);
 
-    // Fund agentAccountId
-    console.log('Funding agent account');
-    const agentAccount = getAccount(agentAccountId);
-    const balance = await agentAccount.getBalance();
-    
-    if (balance < BigInt(parseNearAmount('0.25'))) {
-        const amount = BigInt(parseNearAmount('0.3')) - BigInt(balance);
-        const account = getAccount(config.sponsorAccountId);
-        try {
-            await account.transfer({
-                receiverId: agentAccountId,
-                amount,
-            });
-            console.log('Agent account funded:', agentAccountId, amount);
-            // Wait for balance to update to prevent refunding loop
-            await new Promise(resolve => setTimeout(resolve, 10000));
-        } catch (e) {
-            console.log('Error funding agent account:', e);
-            // Don't continue if funding failed
-            throw new Error(`Failed to fund agent account: ${e}`);
-        }
+    // Fund the agent account
+    if (config.autoFund) {
+        await fundAgentAccount(config.fundAmount);
     }
 
-    // Check if worker account is funded
-    const agentBalance = await agentAccount.getBalance();
-    if (agentBalance < BigInt(parseNearAmount('0.25'))) {
-        throw new Error('Problem funding agent account');
-    }
-
-    // Check if worker is already registered for the local case
-    if (!isTEE) {
-        try {
-            const getWorkerRes = await provider.callFunction(
-                config.contractId,
-                'get_agent',
-                {
-                    account_id: agentAccountId,
-                },
-            );
-            if (
-                (getWorkerRes as any)?.codehash
-            ) {
-                agentIsRegistered = true;
-                console.log('Agent is already registered');
-                console.log('Shade Agent API ready on port:', config.shadeAgentPort);
-                return;
+    if (config.autoRegister) {
+        // Check if worker is already registered for the local case
+        if (!isTEE) {
+            try {
+                const getWorkerRes = await provider.callFunction(
+                    config.contractId,
+                    'get_agent',
+                    {
+                        account_id: agentAccountId,
+                    },
+                );
+                if (
+                    (getWorkerRes as any)?.codehash
+                ) {
+                    agentIsRegistered = true;
+                    console.log('Agent is already registered');
+                    console.log('Shade Agent API ready on port:', config.shadeAgentPort);
+                    return;
+                }
+            } catch (e) {
+                console.log('get_agent error:', e);
             }
-        } catch (e) {
-            console.log('get_agent error:', e);
+            console.log('Agent is not registered yet registered');
         }
-        console.log('Agent is not registered yet registered');
-    }
 
-    // Register worker
-    try {
-        // For local dev, we use the API codehash
-        // For TEE, we use the TEE attestation by submitting undefined
-        agentIsRegistered = await registerAgent(!isTEE ? config.apiCodehash : undefined);
-        if (agentIsRegistered) {
-            console.log('Agent is registered');
-        } else {
-           throw new Error('Failed to register agent');
+        // Add keys to the agent account
+        await addAgentKeys(config.numExtraKeys);
+
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        // Register the agent
+        if (!agentIsRegistered) {
+            agentIsRegistered = await registerAgent(!isTEE ? config.apiCodehash : undefined);
         }
-    } catch (e) {
-        throw new Error(`Failed to register agent: ${e}`);
     }
-
-    // Adding keys to the worker account
-    const number = config.numExtraKeys;
-    const addKeyRes = await addAgentKeys(number);
-    if (!addKeyRes) {
-        console.log('Failed to add keys');
-    }
-    console.log(`added ${number} keys:`, addKeyRes);
 
     console.log('Shade Agent API ready on port:', config.shadeAgentPort);
 }
