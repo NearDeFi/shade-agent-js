@@ -1,33 +1,29 @@
-# Use official Node 20 Alpine image
-FROM node:20-alpine
+# Stage 1: Dependencies
+FROM node:22-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --only=production
 
-# Enable Yarn 4+ corepack
-RUN corepack enable
+# Stage 2: Build
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm ci --include=dev
+COPY app.ts ./
+COPY utils/ ./utils/
+RUN npm run build
 
-# Set working directory
+# Stage 3: Production
+FROM node:22-alpine AS runner
 WORKDIR /app
 
-# Copy package files first for optimal caching
-COPY package.json yarn.lock .yarnrc.yml ./
-
-# Install production dependencies (Yarn 4+)
-COPY .yarn ./.yarn
-RUN yarn install
-
 # Copy application files
-COPY . .
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package.json ./
 
 # Set non-root user for security
 RUN chown -R node:node /app
 USER node
 
-# Expose application port
-EXPOSE 3140
-
-# Remove after testing (likely won't do anything since nothing is bound to it)
-EXPOSE 3000
-
-ENV ENV="dev"
-
-# Start command
-CMD ["yarn", "start"]
+CMD ["npm", "start"]

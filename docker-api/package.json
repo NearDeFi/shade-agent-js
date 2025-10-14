@@ -1,32 +1,40 @@
 {
     "type": "module",
     "name": "docker",
-    "packageManager": "yarn@4.9.1",
     "scripts": {
+        "build": "tsc",
+        "start": "node dist/app.js",
+        "dev": "node app.ts",
         "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local",
-        "docker:test": "yarn docker:restart && sudo docker build --platform linux/amd64 -t myapp . && sudo docker run --platform linux/amd64 -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
+        "docker:test": "npm run docker:restart && sudo docker build --platform linux/amd64 -t myapp . && sudo docker run --platform linux/amd64 -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
         "deploy:global": "node ../scripts/deploy-global.js",
         "docker:script": "node ../scripts/docker.js",
         "docker:prune": "sudo docker system prune",
         "docker:restart": "sudo systemctl restart docker",
         "docker:image": "sudo docker build --platform linux/amd64 --no-cache -t mattdlockyer/shade-agent-api:latest .",
         "docker:push": "sudo docker push mattdlockyer/shade-agent-api",
-        "start": "yarn node app.js",
-        "test": "yarn node test.js"
+        "test": "npm run node test.js"
     },
     "dependencies": {
         "@hono/node-server": "^1.14.2",
-        "dotenv": "^16.5.0",
-        "hono": "^4.7.10",
-        "@near-js/transactions": "^2.2.2",
         "@near-js/accounts": "^2.2.2",
         "@near-js/crypto": "^2.2.2",
         "@near-js/providers": "^2.2.2",
         "@near-js/signers": "^2.2.2",
         "@near-js/tokens": "^2.2.2",
-        "@near-js/utils": "^2.2.2",
+        "@near-js/transactions": "^2.2.2",
         "@near-js/types": "^2.2.2",
+        "@near-js/utils": "^2.2.2",
+        "dotenv": "^16.5.0",
+        "hono": "^4.7.10",
         "near-seed-phrase": "^0.2.1"
-
+    },
+    "devDependencies": {
+        "@types/dockerode": "^3.3.44",
+        "@types/node": "^22.15.21",
+        "@vitest/coverage-v8": "^3.2.4",
+        "@vitest/ui": "^3.2.4",
+        "typescript": "^5.8.3",
+        "vitest": "^3.2.4"
     }
 }

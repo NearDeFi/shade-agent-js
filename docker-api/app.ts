@@ -28,6 +28,12 @@ app.use('/*', cors());
 // }
 
 /**
+ * Get the app status
+ * @returns status message
+ */
+app.get("/", (c) => c.json({ message: "App is running" }));
+
+/**
  * Get agent account ID
  * @returns Promise with accountId or error message
  */
@@ -199,7 +205,7 @@ app.post('/api/agent/view', async (c) => {
 });
 
 /**
- * Initialize and boot up the agent
+ * Initialize and boot up the agent 
  * @returns Promise<void>
  */
 async function boot(): Promise<void> {
