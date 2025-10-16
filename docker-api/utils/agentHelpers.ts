@@ -1,25 +1,22 @@
 import { TappdClient } from './tappd';
 import { generateSeedPhrase } from 'near-seed-phrase';
 import {
-    setKey,
+    setAgentKey,
     getImplicit,
-    getCurrentAccountId,
+    getAgentAccountId,
     addKeysFromSecrets,
-    getAccount,
+    getAgentAccount,
+    getSponsorAccount,
     parseNearAmount,
 } from './near';
-import { config } from './config';
+import { config, detectTEE } from './config';
 
 // In-memory keystore for agent keys
-let agentAccountId: string | null = null;
 let currentAgentKeyIndex = 0;
 const agentKeys: string[] = [];
 
 let client: TappdClient | undefined = undefined;
-// Set up Tappd client
-if (config.isTEE) {
-    client = new TappdClient();
-}
+// Set up Tappd client - will be initialized when needed
 
 /**
  * Sets the current signing key for the agent from the in-memory keystore
@@ -27,15 +24,13 @@ if (config.isTEE) {
  * @returns void
  * @throws Error if index is invalid or agent account is not set
  */
-function setAgentKey(index: number): void {
-    if (!agentAccountId) {
-        throw new Error('Agent account ID is not set. Call deriveAgentAccount first.');
-    }
+function setCurrentAgentKey(index: number): void {
+    const agentAccountId = getAgentAccountId();
     if (index < 0 || index >= agentKeys.length) {
         throw new Error(`Invalid key index: ${index}. Available keys: 0-${agentKeys.length - 1}`);
     }
     currentAgentKeyIndex = index;
-    setKey(agentAccountId, agentKeys[currentAgentKeyIndex]);
+    setAgentKey(agentAccountId, agentKeys[currentAgentKeyIndex]);
 }
 
 /**
@@ -55,7 +50,7 @@ export function nextAgentKey(): void {
         currentAgentKeyIndex = 0;
     }
     console.log(`setAgentKey to ${currentAgentKeyIndex} / ${agentKeys.length}`);
-    setAgentKey(currentAgentKeyIndex);
+    setCurrentAgentKey(currentAgentKeyIndex);
 }
 
 /**
@@ -72,10 +67,8 @@ export async function addAgentKeys(number: number): Promise<void> {
     if (!Number.isInteger(number) || number <= 0) {
         throw new Error(`Number of keys must be a positive integer. Got: ${number}`);
     }
-    if (!agentAccountId) {
-        throw new Error('Agent account ID is not set. Call deriveAgentAccount first.');
-    }
-    if (config.isTEE && !client) {
+    getAgentAccountId(); // This will throw if not set
+    if (await detectTEE() && !client) {
         throw new Error('Tappd client is not available in TEE environment');
     }
 
@@ -104,7 +97,7 @@ async function deriveAgentKey(hash: Buffer | undefined): Promise<{ publicKey: st
     try {
         // Use TEE entropy if in sandbox mode otherwise use fixed entropy
         if (hash === undefined) {
-            if (config.isTEE && !client) {
+            if (await detectTEE() && !client) {
                 throw new Error('Tappd client is required for TEE entropy but not available');
             }
             
@@ -153,13 +146,14 @@ export async function deriveAgentAccount(hash: Buffer | undefined): Promise<stri
             throw new Error('Failed to generate implicit account ID from public key');
         }
         
-        agentAccountId = accountId;
+        // Set the agent account ID and signer
+        setAgentKey(accountId, data.secretKey);
+        
         // !!! secret key is pushed to in-memory agentKeys array ONLY
         agentKeys.push(data.secretKey);
-        setAgentKey(agentKeys.length - 1);
+        currentAgentKeyIndex = agentKeys.length - 1;
         
-        console.log(`Derived agent account: ${accountId}`);
-        return agentAccountId;
+        return accountId;
     } catch (error) {
         throw new Error(`Failed to derive agent account: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -171,17 +165,14 @@ export async function deriveAgentAccount(hash: Buffer | undefined): Promise<stri
  * @returns Promise<boolean> - true if registration was successful, false otherwise
  */
 export async function registerAgent(codehash: string | undefined): Promise<boolean> {
-    if (!agentAccountId) {
-        console.error('Agent account ID is not set. Call deriveAgentAccount first.');
-        return false;
-    }
-    if (config.isTEE && !client) {
+    getAgentAccountId(); // This will throw if not set
+    if (await detectTEE() && !client) {
         console.error('Tappd client is not available in TEE environment');
         return false;
     }
 
     try {
-        const agentAccount = getAccount(agentAccountId);
+        const agentAccount = getAgentAccount();
         
         if (codehash === undefined) {
             // TEE mode - use attestation
@@ -198,13 +189,8 @@ export async function registerAgent(codehash: string | undefined): Promise<boole
             }
 
             // Get TDX quote
-            const accountId = getCurrentAccountId();
-            if (!accountId) {
-                console.error('Account ID is required for TDX quote');
-                return false;
-            }
-            
-            const ra = await client.tdxQuote(accountId, 'raw');
+            const agentAccountId = getAgentAccountId();
+            const ra = await client.tdxQuote(agentAccountId, 'raw');
             const quote_hex = ra.quote.replace(/^0x/, '');
 
             // Get quote collateral
@@ -232,38 +218,50 @@ export async function registerAgent(codehash: string | undefined): Promise<boole
             }
             
             // Register the agent
-            const txRes = await agentAccount.callFunction({
-                contractId: config.contractId,
-                methodName: 'register_agent',
-                args: {
-                    quote_hex,
-                    collateral,
-                    checksum,
-                    tcb_info,
-                },
-                gas: BigInt('30000000000000'),
-                waitUntil: 'EXECUTED',
-            });
+            let txRes: any;
+            try {
+                txRes = await agentAccount.callFunction({
+                    contractId: config.contractId,
+                    methodName: 'register_agent',
+                    args: {
+                        quote_hex,
+                        collateral,
+                        checksum,
+                        tcb_info,
+                    },
+                    gas: BigInt('30000000000000'),
+                    waitUntil: 'EXECUTED',
+                });
+            } catch (error) {
+                console.error('Failed to call register_agent with TEE attestation:', error);
+                return false;
+            }
             
-            // Check transaction status
-            if ((txRes as any).status.SuccessValue !== '') {
+            // Check transaction status - txRes is just a boolean
+            if (!txRes) {
                 console.error('Registration transaction failed');
                 return false;
             }
         } else {
             // Local dev mode - use codehash
-            const txRes = await agentAccount.callFunction({
-                contractId: config.contractId,
-                methodName: 'register_agent',
-                args: {
-                    codehash,
-                },
-                gas: BigInt('30000000000000'),
-                waitUntil: 'EXECUTED',
-            });
+            let txRes: any;
+            try {
+                txRes = await agentAccount.callFunction({
+                    contractId: config.contractId,
+                    methodName: 'register_agent',
+                    args: {
+                        codehash,
+                    },
+                    gas: BigInt('30000000000000'),
+                    waitUntil: 'EXECUTED',
+                });
+            } catch (error) {
+                console.error('Failed to call register_agent with codehash:', error);
+                return false;
+            }
             
-            // Check transaction status
-            if ((txRes as any).status.SuccessValue !== '') {
+            // Check transaction status - txRes is just a boolean
+            if (!txRes) {
                 console.error('Registration transaction failed');
                 return false;
             }
@@ -271,8 +269,7 @@ export async function registerAgent(codehash: string | undefined): Promise<boole
         
         return true;
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`Failed to register agent: ${errorMessage}`);
+        console.error('Failed to register agent: ', error);        
         return false;
     }
 }
@@ -284,19 +281,21 @@ export async function registerAgent(codehash: string | undefined): Promise<boole
  * @throws Error if funding fails or agent account is not set
  */
 export async function fundAgentAccount(amount: string): Promise<void> {
-    if (!agentAccountId) {
-        throw new Error('Agent account ID is not set. Call deriveAgentAccount first.');
-    }
+    const agentAccountId = getAgentAccountId(); // This will throw if not set
 
-    console.log('Funding agent account');
     const transferAmount = BigInt(parseNearAmount(amount));
-    const sponsorAccount = getAccount(config.sponsorAccountId);
+    const sponsorAccount = getSponsorAccount();
     
     try {
-        const txRes = await sponsorAccount.transfer({
-            receiverId: agentAccountId,
-            amount: transferAmount,
-        });
+        let txRes: any;
+        try {
+            txRes = await sponsorAccount.transfer({
+                receiverId: agentAccountId,
+                amount: transferAmount,
+            });
+        } catch (transferError) {
+            throw new Error(`Transfer failed: ${transferError instanceof Error ? transferError.message : String(transferError)}`);
+        }
         
         // Check transaction status
         if ((txRes.status as any).SuccessValue !== '') {

@@ -1,19 +1,9 @@
 {
-    "type": "module",
     "name": "docker",
     "scripts": {
         "build": "tsc",
         "start": "node dist/app.js",
-        "dev": "node app.ts",
-        "phala:test": "phala cvms create --name shade-agent-api-test --compose ./docker-compose.yaml --env-file ./.env.development.local",
-        "docker:test": "npm run docker:restart && sudo docker build --platform linux/amd64 -t myapp . && sudo docker run --platform linux/amd64 -p 3140:3140 --env-file .env.development.local --rm -e SHADE_AGENT_PORT=3140 myapp",
-        "deploy:global": "node ../scripts/deploy-global.js",
-        "docker:script": "node ../scripts/docker.js",
-        "docker:prune": "sudo docker system prune",
-        "docker:restart": "sudo systemctl restart docker",
-        "docker:image": "sudo docker build --platform linux/amd64 --no-cache -t mattdlockyer/shade-agent-api:latest .",
-        "docker:push": "sudo docker push mattdlockyer/shade-agent-api",
-        "test": "npm run node test.js"
+        "dev": "node app.ts"
     },
     "dependencies": {
         "@hono/node-server": "^1.14.2",

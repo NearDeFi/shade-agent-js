@@ -39,7 +39,6 @@ export function getProvider(providers: string): Provider {
     let provider: Provider;
 
     if (nearRpcProvidersJson.nearRpcProviders) {
-        console.log('Using custom RPC providers');
         const providers = nearRpcProvidersJson.nearRpcProviders.map(
             (providerConfig: { connectionInfo: any; options?: any }) =>
                 new JsonRpcProvider(
@@ -47,13 +46,18 @@ export function getProvider(providers: string): Provider {
                     providerConfig.options || {},
                 ),
         );
-        provider = new FailoverRpcProvider(providers);
-        console.log('NEAR providers: ', (provider as any).providers);
+        
+        // If only one provider, use JsonRpcProvider directly instead of FailoverRpcProvider
+        // Temporary fix - use new version of near-api-js when failover provider is fixed
+        if (providers.length === 1) {
+            provider = providers[0];
+        } else {
+            provider = new FailoverRpcProvider(providers);
+        }
     } else {
-        console.log('Using default RPC provider');
         provider = createDefaultProvider();
-        console.log('NEAR providers: ', 'default provider');
     }
 
+    console.log('provider', provider);
     return provider;
 }

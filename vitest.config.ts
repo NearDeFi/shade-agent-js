@@ -5,8 +5,8 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
-    testTimeout: 30000, // 30 seconds for integration tests
-    hookTimeout: 30000, // 30 seconds for setup/teardown
+    testTimeout: 60000, // 60 seconds for integration tests
+    hookTimeout: 120000, // 2 minutes for setup/teardown (NEAR sandbox can be slow)
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

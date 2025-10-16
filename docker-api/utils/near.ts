@@ -14,15 +14,16 @@ import { config } from './config';
  */
 export const parseNearAmount = (amt: string): bigint => NEAR.toUnits(amt);
 
-// Local vars for module
-let _accountId: string | undefined, signer: KeyPairSigner | undefined;
+// Global state for accounts and signers
+let agentAccountId: string | null = null;
+let sponsorSigner: KeyPairSigner | undefined;
+let currentAgentSigner: KeyPairSigner | undefined;
 
-// If we're running within the API image and we have ENV vars for NEAR_ACCOUNT_ID and NEAR_SEED_PHRASE
+// Initialize sponsor signer from seed phrase
 if (config.sponsorAccountId && config.sponsorSeedPhrase) {
-    _accountId = config.sponsorAccountId;
     const { secretKey } = parseSeedPhrase(config.sponsorSeedPhrase);
     const keyPair = KeyPair.fromString(secretKey as KeyPairString);
-    signer = new KeyPairSigner(keyPair);
+    sponsorSigner = new KeyPairSigner(keyPair);
 }
 
 export const provider = getProvider(config.nearRpcJson);
@@ -30,23 +31,23 @@ export const provider = getProvider(config.nearRpcJson);
 // Helpers
 
 /**
- * Sets a key pair for an account in the in-memory keystore
- * @param accountId - NEAR account ID
- * @param secretKey - Account's secret key
+ * Sets the agent account ID and current signer
+ * @param accountId - Agent account ID
+ * @param secretKey - Agent's secret key
  * @returns void
  */
-export const setKey = (accountId: string, secretKey: string): void => {
+export const setAgentKey = (accountId: string, secretKey: string): void => {
     if (!accountId || !secretKey) {
-        return console.log('ERROR: setKey missing args');
+        return console.error('ERROR: setAgentKey missing args');
     }
     // User passed in a seed phrase
     if (secretKey.indexOf(' ') > -1) {
         secretKey = parseSeedPhrase(secretKey).secretKey;
     }
-    _accountId = accountId;
+    agentAccountId = accountId;
     const keyPair = KeyPair.fromString(secretKey as KeyPairString);
-    // Set in-memory keystore only
-    signer = new KeyPairSigner(keyPair);
+    // Set current agent signer
+    currentAgentSigner = new KeyPairSigner(keyPair);
 };
 
 /**
@@ -58,31 +59,54 @@ export const getImplicit = (pubKeyStr: string): string =>
     Buffer.from(PublicKey.from(pubKeyStr).data).toString('hex').toLowerCase();
 
 /**
- * Creates a NEAR Account instance
- * @param id - NEAR account ID
- * @returns NEAR Account instance
- * @throws Error if account ID is required but not provided
+ * Gets the agent account instance
+ * @returns NEAR Account instance for the agent
+ * @throws Error if agent account ID is not set
  */
-export const getAccount = (id: string | undefined = _accountId): Account => {
-    if (!id) {
-        throw new Error('Account ID is required');
+export const getAgentAccount = (): Account => {
+    if (!agentAccountId) {
+        throw new Error('Agent account ID is not set. Call deriveAgentAccount first.');
     }
-    return new Account(id, provider, signer);
+    if (!currentAgentSigner) {
+        throw new Error('Agent signer is not set. Call setAgentKey first.');
+    }
+    return new Account(agentAccountId, provider, currentAgentSigner);
 };
 
 /**
- * Returns the current account ID
- * @returns Current account ID or undefined
+ * Gets the sponsor account instance
+ * @returns NEAR Account instance for the sponsor
+ * @throws Error if sponsor signer is not set
  */
-export const getCurrentAccountId = (): string | undefined => _accountId;
+export const getSponsorAccount = (): Account => {
+    if (!config.sponsorAccountId) {
+        throw new Error('Sponsor account ID is not configured');
+    }
+    if (!sponsorSigner) {
+        throw new Error('Sponsor signer is not set');
+    }
+    return new Account(config.sponsorAccountId, provider, sponsorSigner);
+};
 
 /**
- * Adds multiple keys to the current account from secret keys
+ * Gets the agent account ID
+ * @returns The agent account ID
+ * @throws Error if agent account ID is not set
+ */
+export const getAgentAccountId = (): string => {
+    if (!agentAccountId) {
+        throw new Error('Agent account ID is not set. Call deriveAgentAccount first.');
+    }
+    return agentAccountId;
+};
+
+/**
+ * Adds multiple keys to the agent account from secret keys
  * @param secrets - Array of secret keys to add to the account
  * @returns void
  */
 export const addKeysFromSecrets = async (secrets: string[]): Promise<void> => {
-    const account = getAccount();
+    const account = getAgentAccount();
     const actions: any[] = [];
     try {
         for (let secretKey of secrets) {
@@ -94,11 +118,23 @@ export const addKeysFromSecrets = async (secrets: string[]): Promise<void> => {
                 ),
             );
         }
-        const tx = await account.createSignedTransaction(
-            account.accountId,
-            actions,
-        );
-        const txRes = await account.provider.sendTransaction(tx);
+        let tx: any;
+        try {
+            tx = await account.createSignedTransaction(
+                account.accountId,
+                actions,
+            );
+        } catch (error) {
+            throw new Error(`Failed to create signed transaction: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        let txRes: any;
+        try {
+            txRes = await account.provider.sendTransaction(tx);
+        } catch (error) {
+            throw new Error(`Failed to send transaction: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
         if ((txRes.status as any).SuccessValue !== '') {
             throw new Error('Failed to add key');
         }

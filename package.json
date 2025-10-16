@@ -11,7 +11,11 @@
         "build:sandbox": "cd ./contracts/sandbox && RUSTFLAGS='-C link-arg=--enable-bulk-memory' cargo near build non-reproducible-wasm",
         "build": "tsup src/index.ts --format cjs --dts && cp package.json dist/package.json",
         "build:test": "yarn run build && rm -rf docker-api/dist && mkdir docker-api/dist && cp dist/* docker-api/dist",
-        "deploy": "npm publish --access public"
+        "deploy": "npm publish --access public",
+        "docker-api:build": "cd docker-api && docker build --platform linux/amd64 -t pivortex/api-image:latest . && docker push pivortex/api-image:latest",
+        "docker-api:run": "cd tests && docker run -p 3140:3140 --env-file .env.development.local pivortex/api-image:latest",
+        "test": "vitest tests/local/example.test.ts",
+        "kill:test": "lsof -ti:3032 | xargs kill -9"
     },
     "devDependencies": {
         "@near-js/accounts": "^2.2.2",
@@ -20,6 +24,7 @@
         "@near-js/signers": "^2.2.2",
         "@near-js/tokens": "^2.2.2",
         "@near-js/utils": "^2.2.2",
+        "@types/dockerode": "^3.3.44",
         "@types/elliptic": "^6",
         "@types/node": "^22.15.21",
         "@vitest/coverage-v8": "^1.0.0",

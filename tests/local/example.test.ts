@@ -7,7 +7,7 @@ describe('Example Test', () => {
     });
 
     it('should respond with app is running', async () => {
-        const response = await fetch('http://localhost:3140/');
+        const response = await fetch('http://localhost:3141/');
         const data = await response.json();
 
         console.log(data);

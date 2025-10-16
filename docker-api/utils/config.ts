@@ -12,7 +12,7 @@ import { TappdClient } from './tappd';
  * 
  * @returns Promise<boolean> - true if running in a verified TEE environment, false otherwise
  */
-async function detectTEE(): Promise<boolean> {
+export async function detectTEE(): Promise<boolean> {
     // First check if socket exists
     if (!existsSync('/var/run/tappd.sock')) {
         return false;
@@ -29,7 +29,8 @@ async function detectTEE(): Promise<boolean> {
 }
 
 // Load environment variables based on environment
-const isTEE = await detectTEE();
+// Check if TEE socket exists first (synchronous check)
+const isTEE = existsSync('/var/run/tappd.sock');
 if (!isTEE) {
     // For local load .env.development.local
     dotenv.config({ path: './.env.development.local' });
@@ -70,10 +71,10 @@ const contractId = getRequiredEnv('AGENT_CONTRACT_ID');
 let networkId: 'testnet' | 'mainnet';
 if (contractId.endsWith('.testnet')) {
     networkId = 'testnet';
-} else if (contractId.endsWith('.mainnet')) {
+} else if (contractId.endsWith('.near')) {
     networkId = 'mainnet';
 } else {
-    throw new Error(`Contract ID must be a .testnet or .mainnet account ID. Got: ${contractId}`);
+    throw new Error(`Contract ID must be a .testnet or .near account ID. Got: ${contractId}`);
 }
 
 // Parse and export all environment variables
@@ -121,5 +122,4 @@ export const config = {
     // Pre-computed derived values
     // isSandbox,
     networkId,
-    isTEE,
 } as const;
