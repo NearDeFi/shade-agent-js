@@ -101,11 +101,10 @@ impl Contract {
 
     // views
 
-    pub fn get_agent(&self, account_id: AccountId) -> Worker {
+    pub fn get_agent(&self, account_id: AccountId) -> Option<Worker> {
         self.worker_by_account_id
             .get(&account_id)
-            .expect("no worker found")
-            .to_owned()
+            .map(|worker| worker.to_owned())
     }
 
     // only for contract methods
@@ -116,7 +115,8 @@ impl Contract {
 
     /// will throw on client if worker agent is not registered with a codehash in self.approved_codehashes
     fn require_approved_codehash(&mut self) {
-        let worker = self.get_agent(env::predecessor_account_id());
+        let worker = self.get_agent(env::predecessor_account_id())
+            .expect("worker not found");
         require!(self.approved_codehashes.contains(&worker.codehash));
     }
 }

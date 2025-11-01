@@ -1,23 +1,8 @@
-export { TappdClient } from './tappd';
 export {
-    getImplicit,
-    getCurrentAccountId,
-    setKey,
-    getAccount,
-    getBalance,
-    contractView,
-    contractCall,
-    networkId,
-    parseNearAmount,
-} from './near';
-
-export { deriveAgentAccount, registerAgent } from './agentHelpers';
-
-export {
-    agent,
     agentAccountId,
-    agentInfo,
+    agentBalance,
+    agentIsRegistered,
     agentCall,
     agentView,
     requestSignature,
-} from './api';
+} from './api-wrapper';
