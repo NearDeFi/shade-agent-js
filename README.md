@@ -1,5 +1,14 @@
 # Shade Agent JS - CLI, Docker, Sandbox
 
+> [!WARNING]  
+> The Shade Agent Framework is experimental and contains known critical vulnerabilities.
+> 
+> It must not be used in production or on mainnet and is intended solely for testing and non-critical use on testnet.
+> 
+> No representations or warranties are made regarding security, correctness, or fitness for any purpose. Use of this software is entirely at your own risk.
+> 
+> A production-ready version of the framework is currently in development.
+
 The following library and docker API are for use in the shade agent stack.
 
 This version is `@neardefi/shade-agent-cli: 1.0.x` for easier deployment.
